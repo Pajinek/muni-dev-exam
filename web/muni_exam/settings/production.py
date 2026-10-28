@@ -6,16 +6,12 @@ DEBUG = False
 
 ALLOWED_HOSTS = [
     host.strip()
-    for host in os.environ.get(
-        "ALLOWED_HOSTS", "muni-exam.brno.pavelstudenik.cz"
-    ).split(",")
+    for host in os.environ.get("ALLOWED_HOSTS", "muni-exam.brno.pavelstudenik.cz").split(",")
     if host.strip()
 ]
 CSRF_TRUSTED_ORIGINS = [
     origin.strip()
-    for origin in os.environ.get(
-        "CSRF_TRUSTED_ORIGINS", "http://muni-exam.brno.pavelstudenik.cz"
-    ).split(",")
+    for origin in os.environ.get("CSRF_TRUSTED_ORIGINS", "http://muni-exam.brno.pavelstudenik.cz").split(",")
     if origin.strip()
 ]
 
@@ -30,4 +26,3 @@ DATABASES = {
 
 SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = False
-

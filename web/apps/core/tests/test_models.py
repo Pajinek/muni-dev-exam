@@ -107,9 +107,7 @@ class TrainingDateModelTest(TestCase):
 
 class CompletedTrainingModelTest(TestCase):
     def setUp(self):
-        self.cat = CatalogTraining.objects.create(
-            kod="BOZP-Z", nazev="BOZP", platnost_mesicu="24"
-        )
+        self.cat = CatalogTraining.objects.create(kod="BOZP-Z", nazev="BOZP", platnost_mesicu="24")
         self.emp = Employee.objects.create(
             id_zamestnance="E1",
             jmeno="A",

@@ -79,9 +79,7 @@ class TrainingRulesTest(TestCase):
             datum_absolvovani=today - timedelta(days=30),
             platnost_do=today + timedelta(days=30),
         )
-        emp = Employee.objects.prefetch_related("completed_trainings__kod_skoleni").get(
-            pk=self.emp.pk
-        )
+        emp = Employee.objects.prefetch_related("completed_trainings__kod_skoleni").get(pk=self.emp.pk)
         valid = _valid_training_codes(emp, today)
         self.assertEqual(valid, {"BOZP-Z"})
 

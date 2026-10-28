@@ -171,9 +171,7 @@ class ImportAllTest(TestCase):
                     "poznamka": "",
                 }
             )
-            abs_path.write_text(
-                json.dumps(abs_data, ensure_ascii=False), encoding="utf-8"
-            )
+            abs_path.write_text(json.dumps(abs_data, ensure_ascii=False), encoding="utf-8")
 
             stats = import_all(tmp)
             self.assertEqual(CatalogTraining.objects.count(), 2)
@@ -191,9 +189,7 @@ class ImportAllTest(TestCase):
             completed = CompletedTraining.objects.get(pk="Z100")
             self.assertEqual(completed.kod_skoleni_id, "BOZP-Z")
             self.assertEqual(completed.cena_kc, Decimal("1200.00"))
-            self.assertEqual(
-                CompletedTraining.objects.get(pk="Z101").kod_skoleni_id, "KYBER"
-            )
+            self.assertEqual(CompletedTraining.objects.get(pk="Z101").kod_skoleni_id, "KYBER")
 
             abs_stats = stats["files"]["absolvovana_skoleni.json"]
             self.assertEqual(abs_stats["skipped"], 1)
