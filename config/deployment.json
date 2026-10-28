@@ -7,6 +7,11 @@
       "source": "config/8010-muni-exam.conf",
       "path": "/etc/apache2/sites-enabled/8010-muni-exam.conf",
       "mode": "0644"
+    },
+    {
+      "source": "config/8010-muni-exam-le-ssl.conf",
+      "path": "/etc/apache2/sites-enabled/8010-muni-exam-le-ssl.conf",
+      "mode": "0644"
     }
   ],
   "params": {
@@ -20,6 +25,9 @@
       "/var/www/muni_exam/data:/app/data:Z"
     ],
     "env-file": "/var/opt/secrets/muni_exam",
-    "e": "DJANGO_SETTINGS_MODULE=muni_exam.settings.production"
+    "e": [
+      "DJANGO_SETTINGS_MODULE=muni_exam.settings.production",
+      "CSRF_TRUSTED_ORIGINS=https://muni-exam.brno.pavelstudenik.cz,http://muni-exam.brno.pavelstudenik.cz"
+    ]
   }
 }

@@ -4,7 +4,7 @@ Apache vhost and Varhoo Manage deploy payload for **muni-exam.brno.pavelstudenik
 
 | | Value |
 | --- | --- |
-| Public URL | http://muni-exam.brno.pavelstudenik.cz |
+| Public URL | https://muni-exam.brno.pavelstudenik.cz |
 | Deploy host | `s5.varhoo.cz` |
 | Container | `muni_exam.prod` |
 | Backend | `127.0.0.1:8010` → container `:80` |
@@ -45,16 +45,16 @@ Create `/var/opt/secrets/muni_exam` (not in git):
 ```
 SECRET_KEY=<production secret>
 ALLOWED_HOSTS=muni-exam.brno.pavelstudenik.cz
-CSRF_TRUSTED_ORIGINS=http://muni-exam.brno.pavelstudenik.cz
+CSRF_TRUSTED_ORIGINS=https://muni-exam.brno.pavelstudenik.cz,http://muni-exam.brno.pavelstudenik.cz
 ```
 
-Optional TLS (if enabling the SSL vhost later):
+TLS vhost: [`8010-muni-exam-le-ssl.conf`](8010-muni-exam-le-ssl.conf). Certs:
 
 ```bash
 certbot --apache -d muni-exam.brno.pavelstudenik.cz
 ```
 
-Cert paths expected by the SSL vhost: `/etc/letsencrypt/live/muni-exam.brno.pavelstudenik.cz/`.
+Cert paths: `/etc/letsencrypt/live/muni-exam.brno.pavelstudenik.cz/`.
 
 After the first deploy, load sample data inside the container:
 
