@@ -1,0 +1,78 @@
+include:
+  - component: $CI_SERVER_FQDN/varhoo/vh-manage/deploy@main
+    inputs:
+      needs:
+        - test
+        - pylint
+
+stages:
+  - lint
+  - build
+  - test
+  - deploy
+
+variables:
+  IMAGE_COMMIT: $CI_REGISTRY/$CI_PROJECT_PATH:$CI_COMMIT_SHA
+  IMAGE_BRANCH: $CI_REGISTRY/$CI_PROJECT_PATH:$CI_COMMIT_REF_SLUG
+  IMAGE_LATEST: $CI_REGISTRY/$CI_PROJECT_PATH:latest
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  WEB_DIR: web
+
+.pip_cache:
+  cache:
+    key:
+      files:
+        - web/pyproject.toml
+        - web/requirements.txt
+    paths:
+      - .cache/pip
+
+# Runner mounts the host docker.sock; do not use DinD here.
+# Runner 18 does not clear ENTRYPOINT. docker:27-cli starts as `docker`.
+.docker_job:
+  image:
+    name: docker:27-cli
+    entrypoint: [""]
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+
+# Parallel with build — does not wait on image build.
+static-analysis:
+  stage: lint
+  image: python:3.13-slim-bookworm
+  interruptible: true
+  needs: []
+  extends: .pip_cache
+  before_script:
+    - pip install "black==23.11.0" "isort==6.1.0" "toml"
+  script:
+    - black --line-length 120 --check "$WEB_DIR/apps/" "$WEB_DIR/muni_exam/" "$WEB_DIR/bin/"
+    - isort --check-only --diff --settings-path "$WEB_DIR/pyproject.toml" "$WEB_DIR/apps/" "$WEB_DIR/muni_exam/" "$WEB_DIR/bin/"
+    - python3 csv_import.py
+
+build:
+  extends: .docker_job
+  stage: build
+  script:
+    - docker pull "$IMAGE_LATEST" || true
+    - docker build --cache-from "$IMAGE_LATEST" -t "$IMAGE_COMMIT" -t "$IMAGE_BRANCH" "$WEB_DIR"
+    - docker push "$IMAGE_COMMIT"
+    - docker push "$IMAGE_BRANCH"
+
+test:
+  stage: test
+  image: $IMAGE_COMMIT
+  needs: ["build"]
+  variables:
+    DJANGO_SETTINGS_MODULE: muni_exam.settings
+  script:
+    - python manage.py test
+
+pylint:
+  stage: test
+  image: $IMAGE_COMMIT
+  needs: ["build"]
+  script:
+    - pip install --no-cache-dir "pylint==3.3.9"
+    - pylint -rn -sn --disable=import-error apps muni_exam
