@@ -152,8 +152,8 @@ def row_to_employee(row: dict[str, str]) -> Employee:
         )
     return Employee(
         id_zamestnance=row["id_zamestnance"].strip(),
-        jmeno=row.get("jmeno", "").strip(),
-        prijmeni=row.get("prijmeni", "").strip(),
+        jmeno=Employee.normalize_name(row.get("jmeno", "")),
+        prijmeni=Employee.normalize_name(row.get("prijmeni", "")),
         email=row.get("email", "").strip(),
         utvar=row.get("utvar", "").strip(),
         pozice=row.get("pozice", "").strip(),

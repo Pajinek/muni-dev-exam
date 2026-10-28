@@ -27,6 +27,16 @@ class Employee(models.Model):
         verbose_name = "zaměstnanec"
         verbose_name_plural = "zaměstnanci"
 
+    @staticmethod
+    def normalize_name(value: str) -> str:
+        """První písmeno velké, ostatní malá (např. LUCIE → Lucie)."""
+        return value.strip().capitalize()
+
+    def save(self, *args, **kwargs):
+        self.jmeno = self.normalize_name(self.jmeno)
+        self.prijmeni = self.normalize_name(self.prijmeni)
+        super().save(*args, **kwargs)
+
     def __str__(self) -> str:
         return f"{self.prijmeni} {self.jmeno} ({self.id_zamestnance})"
 
