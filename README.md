@@ -31,3 +31,26 @@ Závislosti: pouze standardní knihovna Pythonu 3.
 ```bash
 python3 csv_import.py
 ```
+
+Načtení JSON do Django DB (z adresáře `web/`):
+
+```bash
+python manage.py import_json --data-dir imports/
+python manage.py import_json --data-dir imports/ --clear
+```
+
+JSON soubory leží ve `web/imports/` (kopie výstupů `csv_import.py`). Bez `--data-dir` se bere kořen repozitáře.
+### Duplicitní a přeskočené záznamy
+
+Import je idempotentní podle primárního klíče. Při opakovaném výskytu stejného ID se do DB uloží jen první výskyt (`duplicit`); neplatné / šumové řádky (prázdné ID, komentáře `#…`, součovací řádky) se počítají jako `přeskočeno`.
+
+Typický výstup z `import_json` nad přiloženými exporty:
+
+```
+katalog_skoleni.json: 10 importováno (+0 / ~10), přeskočeno 0, duplicit 0 (řádků v souboru: 10)
+zamestnanci.json: 174 importováno (+0 / ~174), přeskočeno 0, duplicit 0 (řádků v souboru: 174)
+terminy_skoleni.json: 34 importováno (+0 / ~34), přeskočeno 0, duplicit 0 (řádků v souboru: 34)
+absolvovana_skoleni.json: 2850 importováno (+0 / ~2850), přeskočeno 3, duplicit 15 (řádků v souboru: 2868)
+```
+
+U `absolvovana_skoleni` tedy z 2868 řádků zbývá **2850** platných unikátních záznamů (3 přeskočené + 15 duplicit podle `id_zaznamu`).

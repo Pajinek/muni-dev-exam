@@ -32,9 +32,22 @@ python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 python manage.py migrate
+python manage.py import_json --data-dir imports/   # načte imports/*.json do DB
 python manage.py createsuperuser   # volitelné, pro /admin/
 python manage.py runserver
 ```
+
+### Import JSON
+
+```bash
+python manage.py import_json --data-dir imports/
+python manage.py import_json --data-dir imports/ --clear   # smaže existující data a načte znovu
+python manage.py import_json --data-dir /cesta/k/json
+```
+
+Doporučený zdroj je `web/imports/` (relativně z `web/`: `--data-dir imports/`). Bez `--data-dir` se bere kořen repozitáře (nad `web/`). Očekávané soubory: `katalog_skoleni.json`, `zamestnanci.json`, `terminy_skoleni.json`, `absolvovana_skoleni.json`.
+
+Při importu se hlásí `přeskočeno` (neplatné řádky) a `duplicit` (opakované PK — zůstane první výskyt). U přiložených dat mají duplicity jen `absolvovana_skoleni.json` (15 duplicit + 3 přeskočené z 2868 řádků → 2850 importováno). Podrobnosti viz [root README](../README.md#duplicitní-a-přeskočené-záznamy).
 
 Or with Docker Compose:
 

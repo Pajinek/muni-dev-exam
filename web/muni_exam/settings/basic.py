@@ -25,7 +25,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
-ADMIAN = ['pavelstudenik@gmail.com']
+ADMINS = [('Pavel Studenik', 'pavelstudenik@gmail.com')]
 
 # Application definition
 
