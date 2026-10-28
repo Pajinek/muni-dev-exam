@@ -65,3 +65,18 @@ U `absolvovana_skoleni` tedy z 2868 řádků zbývá **2850** platných unikátn
 ### Problémy v datech při importu
 
 Některé řádky v `absolvovana_skoleni` odkazují na `id_zamestnance` mimo `zamestnanci` (`E9001`–`E9009`, 9 záznamů). Import je vypíše jako **Nekonzistence dat**, záznam uloží s prázdnou FK a pokračuje dál. Stejně by se ohlásil i neznámý `kod_skoleni`.
+
+## Deployment
+
+Produkční nasazení běží na **http://muni-exam.brno.pavelstudenik.cz** (kontejner `muni_exam.prod` na `127.0.0.1:8010`).
+
+| Co | Kde |
+|----|-----|
+| Apache vhosty + `deployment.json` | [`config/`](config/) |
+| Podrobný návod (secrets, certbot, DB, import) | [`config/README.md`](config/README.md) |
+| Django app + Docker image | [`web/`](web/) |
+| CI pipeline | [`.gitlab-ci.yml`](.gitlab-ci.yml) |
+
+Pipeline: lint → build image do GitLab registry → test/pylint → **deploy** (component `varhoo/vh-manage/deploy`: retag `:latest` + `vhm-deploy` z `config/deployment.json`). Na výchozí větvi automaticky po úspěšných testech; jinde manuálně. Potřeba CI/CD proměnná `VHM_SERVICE_TOKEN`.
+
+Lokální vývoj a Ansible alternativa: viz [`web/README.md`](web/README.md).

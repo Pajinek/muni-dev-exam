@@ -1,8 +1,8 @@
 ---
 - import_tasks: local.yml
 
-- name: Check docker and httpd on host
-  command: systemctl status docker httpd
+- name: Check docker and apache2 on host
+  command: systemctl status docker apache2
 
 - name: Check user {{ user }}
   command: id {{ user }}
@@ -47,9 +47,12 @@
     - "{{home}}/static"
 
 - name: Run new instance of {{ proj }}
-# --link {{db}}:postgresql.docker \
   command: docker run -d -p 127.0.0.1:{{ http_port }}:80 \
+           --env-file {{ env_file }} \
+           -e DJANGO_SETTINGS_MODULE="{{ proj }}.settings.production" \
            --restart=unless-stopped \
+           --link {{ db }}:postgresql.docker \
+           --security-opt="label=disable" \
            -v {{ home }}/static:{{ docker_home }}/static:Z \
            -v {{ home }}/storage:{{ docker_home }}/storage:Z \
            --name {{ proj }}.prod {{ proj }}

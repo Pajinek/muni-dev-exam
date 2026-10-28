@@ -1,22 +1,7 @@
 ---
 - hosts: all
   remote_user: root
-  vars:
-    # project
-    domain:    "{{ cookiecutter.package_name }}.varhoo.cz"
-    proj:      "{{ cookiecutter.package_name }}"
-    http_port: "8000"
-    db:        "postgresql"
-    # email:    "root@localhost"
-    {% raw %}
-    # configuration on host
-    user:         "{{ proj }}"
-    home:         "/var/www/{{ proj }}"
-    # configuration  docker guest
-    docker_home:  "/app/{{ proj }}"
-    # don't change
-    image:        "{{proj}}.docker"
-    {% endraw %}
+  # Vars come from group_vars/all.yml (aligned with config/deployment.json).
   roles:
     - common
     - webservice

@@ -1,18 +1,19 @@
 ---
-# project
-domain:    "example.com"
-proj:      "{{ proj }}"
-registry:  "{{registry}}/{{ proj }}"
-registry_version:  "latest"
+# Align with ../../config/deployment.json and Apache vhosts in ../../config/
+domain: "muni-exam.brno.pavelstudenik.cz"
+proj: "muni_exam"
+registry: "registry.slavicin.unart.cz/pajinek/muni-dev-exam"
+registry_version: "latest"
 
-http_port: "9000"
-db:        "postgresql.prod"
-email:     "root@localhost"
+http_port: "8010"
+db: "postgresql.prod"
+email: "studenik@varhoo.cz"
 
 # configuration on host
-user:         "username"
-home:         "/var/www/{{ proj }}"
-# configuration  docker guest
-docker_home:  "/app/{{ proj }}"
+user: "muni_exam"
+home: "/var/www/{{ proj }}"
+env_file: "/var/opt/secrets/{{ proj }}"
+# configuration docker guest
+docker_home: "/app/{{ proj }}"
 # don't change
-image:        "{{proj}}.docker"
+image: "{{ proj }}.docker"
