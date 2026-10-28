@@ -67,6 +67,7 @@ test:
   variables:
     DJANGO_SETTINGS_MODULE: muni_exam.settings
   script:
+    - cd "$WEB_DIR"
     - python manage.py test
 
 pylint:
@@ -75,4 +76,5 @@ pylint:
   needs: ["build"]
   script:
     - pip install --no-cache-dir "pylint==3.3.9"
+    - cd "$WEB_DIR"
     - pylint -rn -sn --disable=import-error apps muni_exam
