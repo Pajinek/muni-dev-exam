@@ -71,9 +71,16 @@ class Employee(models.Model):
         """První písmeno velké, ostatní malá (např. LUCIE → Lucie)."""
         return value.strip().capitalize()
 
+    @staticmethod
+    def normalize_email(value: str) -> str:
+        """Odstraní všechny bílé znaky (včetně mezer uprostřed)."""
+        return re.sub(r"\s+", "", (value or "").strip())
+
     def save(self, *args, **kwargs):
         self.jmeno = self.normalize_name(self.jmeno)
         self.prijmeni = self.normalize_name(self.prijmeni)
+        self.email = self.normalize_email(self.email)
+        self.vedouci_email = self.normalize_email(self.vedouci_email)
         super().save(*args, **kwargs)
 
     def __str__(self) -> str:
@@ -97,6 +104,24 @@ class CatalogTraining(models.Model):
 
     def __str__(self) -> str:
         return f"{self.nazev}"
+
+    @staticmethod
+    def parse_platnost_mesicu(value: str) -> int | None:
+        """Převede textovou platnost („24“, „2 roky“) na počet měsíců."""
+        text = (value or "").strip().casefold()
+        if not text:
+            return None
+        match = re.match(r"^(\d+)", text)
+        if not match:
+            return None
+        n = int(match.group(1))
+        if "rok" in text:
+            return n * 12
+        return n
+
+    @property
+    def platnost_mesicu_int(self) -> int | None:
+        return self.parse_platnost_mesicu(self.platnost_mesicu)
 
 
 class TrainingDate(models.Model):
@@ -159,4 +184,27 @@ class CompletedTraining(models.Model):
 
     def __str__(self) -> str:
         return f"{self.id_zaznamu} {self.kod_skoleni} ({self.id_zamestnance})"
+
+    @property
+    def delka_platnosti(self) -> int | None:
+        """Délka platnosti školení v měsících: platnost_do − datum_absolvovani."""
+        if self.platnost_do is None or self.datum_absolvovani is None:
+            return None
+        start = self.datum_absolvovani
+        end = self.platnost_do
+        months = (end.year - start.year) * 12 + (end.month - start.month)
+        if end.day < start.day:
+            months -= 1
+        return months
+
+    @property
+    def platnost_odpovida(self) -> bool:
+        """True, pokud delka_platnosti sedí na katalogovou platnost_mesicu."""
+        if self.kod_skoleni is None:
+            return False
+        expected = self.kod_skoleni.platnost_mesicu_int
+        actual = self.delka_platnosti
+        if expected is None or actual is None:
+            return False
+        return actual == expected
 

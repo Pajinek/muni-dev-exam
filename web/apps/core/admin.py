@@ -78,6 +78,8 @@ class CompletedTrainingAdmin(admin.ModelAdmin):
         "kod_skoleni",
         "datum_absolvovani",
         "platnost_do",
+        "delka_platnosti",
+        "platnost_odpovida_icon",
         "poskytovatel",
         "cena_kc",
     )
@@ -90,4 +92,8 @@ class CompletedTrainingAdmin(admin.ModelAdmin):
         "kod_skoleni__nazev",
     )
     autocomplete_fields = ("kod_skoleni",)
-    readonly_fields = ("id_zaznamu",)
+    readonly_fields = ("id_zaznamu", "delka_platnosti", "platnost_odpovida_icon")
+
+    @admin.display(boolean=True, description="platnost odpovídá")
+    def platnost_odpovida_icon(self, obj: CompletedTraining) -> bool:
+        return obj.platnost_odpovida
