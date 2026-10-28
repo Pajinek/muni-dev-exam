@@ -169,6 +169,35 @@ class MissingRequiredTraining(models.Model):
         return f"{self.employee_id}: {self.catalog_id}"
 
 
+class AvailableTrainingDate(models.Model):
+    """Termín, na který se zaměstnanec může přihlásit (admin inline)."""
+
+    employee = models.ForeignKey(
+        Employee,
+        on_delete=models.CASCADE,
+        related_name="available_training_dates",
+    )
+    training_date = models.ForeignKey(
+        "TrainingDate",
+        on_delete=models.CASCADE,
+        related_name="offered_to_employees",
+    )
+
+    class Meta:
+        ordering = ["training_date__datum", "training_date__id_terminu"]
+        verbose_name = "available training date"
+        verbose_name_plural = "available training dates"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["employee", "training_date"],
+                name="uniq_available_training_date",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.employee_id}: {self.training_date_id}"
+
+
 class TrainingDate(models.Model):
     """Termín školení z exportu terminy_skoleni.csv."""
 

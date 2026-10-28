@@ -18,6 +18,7 @@ from django.utils.html import format_html
 
 from .models import (
     ActiveEmployee,
+    AvailableTrainingDate,
     CatalogTraining,
     CompletedTraining,
     Department,
@@ -53,6 +54,45 @@ def _is_training_required(catalog: CatalogTraining, employee: Employee) -> bool:
         names = {n.strip() for n in raw[7:].split(";") if n.strip()}
         return employee.pozice in names
     return False
+
+
+def _is_training_eligible(catalog: CatalogTraining, employee: Employee) -> bool:
+    """Zda se zaměstnanec smí na daný druh školení přihlásit."""
+    raw = (catalog.povinne_pro or "").strip()
+    if not raw:
+        return True
+    upper = raw.casefold()
+    if upper in ("nepovinne", "vsichni"):
+        return True
+    if raw.startswith("UTVAR:"):
+        names = {n.strip() for n in raw[6:].split(";") if n.strip()}
+        dept = employee.department
+        return bool(dept and dept.nazev in names)
+    if raw.startswith("POZICE:"):
+        names = {n.strip() for n in raw[7:].split(";") if n.strip()}
+        return employee.pozice in names
+    return False
+
+
+def _open_training_dates_for(
+    employee: Employee, today: date
+) -> list[TrainingDate]:
+    """Plánované budoucí termíny s volnou kapacitou, na které se může přihlásit."""
+    dates = (
+        TrainingDate.objects.filter(
+            stav=TrainingDate.Status.PLANNED,
+            datum__gte=today,
+        )
+        .select_related("kod_skoleni")
+        .order_by("kod_skoleni__kod", "datum", "cas", "id_terminu")
+    )
+    return [
+        td
+        for td in dates
+        if td.volno > 0
+        and td.kod_skoleni is not None
+        and _is_training_eligible(td.kod_skoleni, employee)
+    ]
 
 
 def _is_completed_valid(
@@ -269,7 +309,113 @@ class ChybejiciSkoleniInline(admin.TabularInline):
         ended = getattr(obj, "_ended_on", None)
         if ended is None:
             return "—"
-        return ended.isoformat()
+        text = ended.isoformat()
+        # Po datu exportu nemáme potvrzení, zda školení nebylo obnoveno.
+        if EXPORT_DATE < ended <= timezone.localdate():
+            return format_html(
+                '{} (<span title="Nejsou k dispozici data kvůli stáří exportu '
+                '(export {})." style="cursor:help">?</span>)',
+                text,
+                EXPORT_DATE_LABEL,
+            )
+        return text
+
+
+class AvailableTrainingDateInline(admin.TabularInline):
+    """Read-only inline: upcoming TrainingDate slots the employee can join."""
+
+    model = AvailableTrainingDate
+    fk_name = "employee"
+    extra = 0
+    can_delete = False
+    show_change_link = False
+    verbose_name = "available training date"
+    verbose_name_plural = "available training dates"
+    fields = (
+        "id_terminu",
+        "catalog_code",
+        "catalog_name",
+        "datum",
+        "cas",
+        "misto",
+        "volno",
+        "is_required",
+    )
+    readonly_fields = fields
+    ordering = ()
+
+    def has_add_permission(self, request, obj=None) -> bool:
+        return False
+
+    def has_change_permission(self, request, obj=None) -> bool:
+        return True
+
+    def has_delete_permission(self, request, obj=None) -> bool:
+        return False
+
+    def get_queryset(self, request):
+        self._missing_codes = None
+        # Pořadí při syncu (pk rostoucí = pořadí bulk_create: code, date, time).
+        return (
+            super()
+            .get_queryset(request)
+            .select_related(
+                "employee",
+                "employee__department",
+                "training_date",
+                "training_date__kod_skoleni",
+            )
+            .order_by("pk")
+        )
+
+    @admin.display(description="id")
+    def id_terminu(self, obj: AvailableTrainingDate) -> str:
+        pk = obj.training_date_id
+        if not pk:
+            return "—"
+        url = reverse("admin:core_trainingdate_change", args=[pk])
+        return format_html('<a href="{}">{}</a>', url, pk)
+
+    @admin.display(description="code")
+    def catalog_code(self, obj: AvailableTrainingDate) -> str:
+        return obj.training_date.kod_skoleni_id or "—"
+
+    @admin.display(description="name")
+    def catalog_name(self, obj: AvailableTrainingDate) -> str:
+        catalog = obj.training_date.kod_skoleni
+        return catalog.nazev if catalog else "—"
+
+    @admin.display(description="date")
+    def datum(self, obj: AvailableTrainingDate) -> str:
+        return obj.training_date.datum.isoformat()
+
+    @admin.display(description="time")
+    def cas(self, obj: AvailableTrainingDate) -> str:
+        return obj.training_date.cas
+
+    @admin.display(description="place")
+    def misto(self, obj: AvailableTrainingDate) -> str:
+        return obj.training_date.misto
+
+    @admin.display(description="free seats")
+    def volno(self, obj: AvailableTrainingDate) -> int:
+        return obj.training_date.volno
+
+    @admin.display(boolean=True, description="required")
+    def is_required(self, obj: AvailableTrainingDate) -> bool:
+        """True jen pokud školení chybí v missing required (např. E0104: POZ-OCH)."""
+        kod = obj.training_date.kod_skoleni_id
+        if not kod:
+            return False
+        missing = getattr(self, "_missing_codes", None)
+        if missing is None:
+            missing = set(
+                MissingRequiredTraining.objects.filter(
+                    employee_id=obj.employee_id
+                ).values_list("catalog_id", flat=True)
+            )
+            self._missing_codes = missing
+        return kod in missing
 
 
 @admin.register(Department)
@@ -341,7 +487,11 @@ class ActiveEmployeeAdmin(EmployeeAdmin):
         "pozice",
     )
     autocomplete_fields = ()
-    inlines = (ChybejiciSkoleniInline, AbsolvovanaSkoleniInline)
+    inlines = (
+        ChybejiciSkoleniInline,
+        AbsolvovanaSkoleniInline,
+        AvailableTrainingDateInline,
+    )
 
     def get_queryset(self, request):
         self._catalogs = list(CatalogTraining.objects.all())
@@ -360,12 +510,12 @@ class ActiveEmployeeAdmin(EmployeeAdmin):
     def changeform_view(self, request, object_id=None, form_url="", extra_context=None):
         if object_id:
             self._sync_missing_required_trainings(object_id)
+            self._sync_available_training_dates(object_id)
         return super().changeform_view(request, object_id, form_url, extra_context)
 
-    def _sync_missing_required_trainings(self, employee_id: str) -> None:
-        """Obnoví řádky MissingRequiredTraining podle aktuální povinnosti a platnosti."""
+    def _load_active_employee(self, employee_id: str) -> ActiveEmployee | None:
         try:
-            employee = (
+            return (
                 ActiveEmployee.objects.select_related("department")
                 .prefetch_related(
                     Prefetch(
@@ -378,6 +528,12 @@ class ActiveEmployeeAdmin(EmployeeAdmin):
                 .get(pk=employee_id)
             )
         except ActiveEmployee.DoesNotExist:
+            return None
+
+    def _sync_missing_required_trainings(self, employee_id: str) -> None:
+        """Obnoví řádky MissingRequiredTraining podle aktuální povinnosti a platnosti."""
+        employee = self._load_active_employee(employee_id)
+        if employee is None:
             return
 
         catalogs = getattr(self, "_catalogs", None)
@@ -394,9 +550,42 @@ class ActiveEmployeeAdmin(EmployeeAdmin):
             ]
         )
 
+    def _sync_available_training_dates(self, employee_id: str) -> None:
+        """Obnoví řádky AvailableTrainingDate (otevřené termíny pro přihlášení)."""
+        employee = self._load_active_employee(employee_id)
+        if employee is None:
+            return
+
+        open_dates = _open_training_dates_for(employee, timezone.localdate())
+        missing_codes = set(
+            MissingRequiredTraining.objects.filter(
+                employee_id=employee_id
+            ).values_list("catalog_id", flat=True)
+        )
+        open_dates.sort(
+            key=lambda td: (
+                0 if td.kod_skoleni_id in missing_codes else 1,
+                td.kod_skoleni_id or "",
+                td.datum,
+                td.cas or "",
+                td.id_terminu,
+            )
+        )
+        AvailableTrainingDate.objects.filter(employee_id=employee_id).delete()
+        AvailableTrainingDate.objects.bulk_create(
+            [
+                AvailableTrainingDate(employee_id=employee_id, training_date=td)
+                for td in open_dates
+            ]
+        )
+
     def save_formset(self, request, form, formset, change):
         # Inliny jsou jen zobrazení – neukládat ruční změny.
-        if formset.model in (MissingRequiredTraining, CompletedTraining):
+        if formset.model in (
+            MissingRequiredTraining,
+            CompletedTraining,
+            AvailableTrainingDate,
+        ):
             return
         super().save_formset(request, form, formset, change)
 
