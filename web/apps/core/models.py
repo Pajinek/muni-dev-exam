@@ -1,4 +1,37 @@
+import re
+import unicodedata
+
 from django.db import models
+
+
+class Department(models.Model):
+    """Organizační útvar."""
+
+    kod = models.CharField(max_length=32, unique=True, blank=True)
+    nazev = models.CharField(max_length=128)
+
+    class Meta:
+        ordering = ["nazev"]
+        verbose_name = "útvar"
+        verbose_name_plural = "útvary"
+
+    @staticmethod
+    def kod_from_nazev(nazev: str) -> str:
+        """Odstraní diakritiku, převede na malá písmena, bílé znaky → _."""
+        normalized = unicodedata.normalize("NFKD", nazev.strip())
+        without_diacritics = "".join(
+            c for c in normalized if not unicodedata.combining(c)
+        )
+        lower = without_diacritics.casefold()
+        return re.sub(r"\s+", "_", lower)[:32]
+
+    def save(self, *args, **kwargs):
+        if not self.kod:
+            self.kod = self.kod_from_nazev(self.nazev) or "utvar"
+        super().save(*args, **kwargs)
+
+    def __str__(self) -> str:
+        return f"{self.nazev}"
 
 
 class Employee(models.Model):
@@ -13,7 +46,13 @@ class Employee(models.Model):
     jmeno = models.CharField(max_length=128)
     prijmeni = models.CharField(max_length=128)
     email = models.EmailField()
-    utvar = models.CharField(max_length=128)
+    department = models.ForeignKey(
+        Department,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="employees",
+    )
     pozice = models.CharField(max_length=128)
     vedouci_email = models.EmailField(blank=True)
     datum_nastupu = models.DateField()

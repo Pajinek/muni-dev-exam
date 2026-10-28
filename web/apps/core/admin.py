@@ -3,9 +3,16 @@ from django.contrib import admin
 from .models import (
     CatalogTraining,
     CompletedTraining,
+    Department,
     Employee,
     TrainingDate,
 )
+
+
+@admin.register(Department)
+class DepartmentAdmin(admin.ModelAdmin):
+    list_display = ("kod", "nazev")
+    search_fields = ("kod", "nazev")
 
 
 @admin.register(Employee)
@@ -15,20 +22,22 @@ class EmployeeAdmin(admin.ModelAdmin):
         "prijmeni",
         "jmeno",
         "email",
-        "utvar",
+        "department",
         "pozice",
         "stav",
         "datum_nastupu",
         "datum_ukonceni",
     )
-    list_filter = ("stav", "utvar", "pozice")
+    list_filter = ("stav", "department", "pozice")
     search_fields = (
         "id_zamestnance",
         "jmeno",
         "prijmeni",
         "email",
-        "utvar",
+        "department__nazev",
+        "department__kod",
     )
+    autocomplete_fields = ("department",)
     # rodné číslo je citlivý údaj – v seznamu nezobrazovat
     exclude = ()
     readonly_fields = ("id_zamestnance",)

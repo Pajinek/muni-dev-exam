@@ -12,7 +12,7 @@ from typing import Any, Callable
 
 from django.db import transaction
 
-from .models import CatalogTraining, CompletedTraining, Employee, TrainingDate
+from .models import CatalogTraining, CompletedTraining, Department, Employee, TrainingDate
 
 logger = logging.getLogger(__name__)
 
@@ -144,6 +144,16 @@ def row_to_catalog(row: dict[str, str]) -> CatalogTraining:
     )
 
 
+def get_or_create_department(nazev: str) -> Department | None:
+    """Najde nebo vytvoří útvar podle názvu z exportu; prázdný název → None."""
+    nazev = nazev.strip()
+    if not nazev:
+        return None
+    kod = Department.kod_from_nazev(nazev) or "utvar"
+    dept, _ = Department.objects.get_or_create(kod=kod, defaults={"nazev": nazev})
+    return dept
+
+
 def row_to_employee(row: dict[str, str]) -> Employee:
     nastup = parse_date(row.get("datum_nastupu"))
     if nastup is None:
@@ -155,7 +165,7 @@ def row_to_employee(row: dict[str, str]) -> Employee:
         jmeno=Employee.normalize_name(row.get("jmeno", "")),
         prijmeni=Employee.normalize_name(row.get("prijmeni", "")),
         email=row.get("email", "").strip(),
-        utvar=row.get("utvar", "").strip(),
+        department=get_or_create_department(row.get("utvar", "")),
         pozice=row.get("pozice", "").strip(),
         vedouci_email=(row.get("vedouci_email") or "").strip(),
         datum_nastupu=nastup,
@@ -238,6 +248,7 @@ def import_all(
         CompletedTraining.objects.all().delete()
         TrainingDate.objects.all().delete()
         Employee.objects.all().delete()
+        Department.objects.all().delete()
         CatalogTraining.objects.all().delete()
         stats["cleared"] = True
 
@@ -258,7 +269,7 @@ def import_all(
                 "jmeno",
                 "prijmeni",
                 "email",
-                "utvar",
+                "department",
                 "pozice",
                 "vedouci_email",
                 "datum_nastupu",
