@@ -1,0 +1,79 @@
+{
+  "source": "katalog_skoleni.csv",
+  "encoding": "utf-8-sig",
+  "delimiter": ",",
+  "original_file_creation_date": "2026-10-01",
+  "row_count": 10,
+  "rows": [
+    {
+      "kod": "BOZP-Z",
+      "nazev": "BOZP – základní školení",
+      "platnost_mesicu": "24",
+      "povinne_pro": "VSICHNI",
+      "poznamka": ""
+    },
+    {
+      "kod": "POZ-OCH",
+      "nazev": "Požární ochrana",
+      "platnost_mesicu": "24",
+      "povinne_pro": "VSICHNI",
+      "poznamka": ""
+    },
+    {
+      "kod": "GDPR",
+      "nazev": "Ochrana osobních údajů",
+      "platnost_mesicu": "36",
+      "povinne_pro": "VSICHNI",
+      "poznamka": ""
+    },
+    {
+      "kod": "KYBER",
+      "nazev": "Kybernetická bezpečnost",
+      "platnost_mesicu": "12",
+      "povinne_pro": "VSICHNI",
+      "poznamka": ""
+    },
+    {
+      "kod": "PRV-POM",
+      "nazev": "První pomoc",
+      "platnost_mesicu": "36",
+      "povinne_pro": "UTVAR:Laboratoře;Správa budov;Knihovna",
+      "poznamka": ""
+    },
+    {
+      "kod": "RIDIC",
+      "nazev": "Řidiči referenti",
+      "platnost_mesicu": "12",
+      "povinne_pro": "POZICE:Řidič",
+      "poznamka": ""
+    },
+    {
+      "kod": "LAB-BEZ",
+      "nazev": "Bezpečná práce v laboratoři",
+      "platnost_mesicu": "24",
+      "povinne_pro": "UTVAR:Laboratoře",
+      "poznamka": ""
+    },
+    {
+      "kod": "ZDVIH",
+      "nazev": "Obsluha zdvihacích zařízení",
+      "platnost_mesicu": "2 roky",
+      "povinne_pro": "POZICE:Technik údržby",
+      "poznamka": ""
+    },
+    {
+      "kod": "LEAD",
+      "nazev": "Základy vedení lidí",
+      "platnost_mesicu": "0",
+      "povinne_pro": "POZICE:Vedoucí",
+      "poznamka": ""
+    },
+    {
+      "kod": "ANGL",
+      "nazev": "Anglický jazyk – kurz",
+      "platnost_mesicu": "",
+      "povinne_pro": "NEPOVINNE",
+      "poznamka": ""
+    }
+  ]
+}
