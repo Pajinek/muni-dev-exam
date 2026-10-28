@@ -124,9 +124,13 @@ pre-commit install
 
 ## Deploy
 
-1. Zkopírujte `config/hosts.ini.example` → `config/hosts.ini` a nastavte hostitele.
-2. Upravte `ansible/group_vars/all.yml` (domain, registry, porty, cesty).
-3. Doplňte produkční hodnoty v `muni_exam/settings/production.py` (`ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS`).
+Produkce (preferované): GitLab CI + VHM. Konfigurace a postup jsou v [`../config/README.md`](../config/README.md). Veřejná URL: **http://muni-exam.brno.pavelstudenik.cz**.
+
+Ansible alternativa (stejné hodnoty jako `../config/deployment.json`):
+
+1. Zkopírujte `config/hosts.ini.example` → `config/hosts.ini` (`s5.varhoo.cz`).
+2. Ověřte `ansible/group_vars/all.yml` (domain, registry, port `8010`, cesty).
+3. Doplňte produkční secrets na hostu (`/var/opt/secrets/muni_exam`: `SECRET_KEY`, `ALLOWED_HOSTS`, …).
 4. Release:
 
 ```bash
@@ -137,9 +141,10 @@ Nebo: `make deploy`.
 
 ## CI
 
-`.gitlab-ci.yml`:
+Pipeline žije v kořeni repozitáře (`../.gitlab-ci.yml`), build kontext je tento adresář `web/`:
 
-1. **lint** — black + isort  
-2. **build** — Docker image do GitLab registry  
-3. **test** — `manage.py test` a pylint  
-4. **deploy** — manuální push tagu `latest`  
+1. **lint** — black + isort (+ smoke `csv_import.py` v kořeni)
+2. **build** — Docker image do GitLab registry
+3. **test** — `manage.py test` a pylint
+4. **deploy** — retag `:latest` + `vhm-deploy` (`../config/deployment.json`)
+

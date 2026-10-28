@@ -1,22 +1,29 @@
-# settings
-.git
-.idea
-*.retry
-.env/*
-venv/*
+# Python
 *.py[co]
+__pycache__/
+.venv/
+venv/
+env/
 
-# static files
-pavelstudenik@gmail.com/storage
-pavelstudenik@gmail.com/static/
+# Environment / secrets
+.env
+.env.*
 
-# databases
+# Django
+muni_exam/static/
+muni_exam/storage/
 *.db
 *.sql
 *.sqlite3
 
-# editors
+# Ansible
+*.retry
+config/hosts.ini
+
+# Editors / IDE
+.idea/
+.vscode/
 *.swp
 
-# docker export
+# Docker export
 *.docker

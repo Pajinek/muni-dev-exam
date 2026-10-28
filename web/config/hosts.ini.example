@@ -1,3 +1,4 @@
 [production]
+s5.varhoo.cz ansible_user=root
 
 [testing]

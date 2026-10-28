@@ -13,8 +13,8 @@
   command: docker tag "{{registry}}:{{ registry_version }}" "{{registry}}:{{timestamp.stdout}}"
   ignore_errors: yes
 
-- name: Pull image {{registry}}:latest"
-  shell: docker pull "{{registry}}:latest"
+- name: Pull image {{ registry }}:{{ registry_version }}
+  shell: docker pull "{{ registry }}:{{ registry_version }}"
   register: result
 
 - name: Remove old instance {{proj}}
@@ -37,9 +37,10 @@
 
 - name: Run new prod instance of {{ proj }}
   command: docker run -d -p 127.0.0.1:{{ http_port }}:80 \
-           -e DJANGO_SETTINGS_MODULE="{{ proj }}.settings.production"
+           --env-file {{ env_file }} \
+           -e DJANGO_SETTINGS_MODULE="{{ proj }}.settings.production" \
            --restart=unless-stopped \
-           --link {{db}}:postgresql.docker \
+           --link {{ db }}:postgresql.docker \
            --security-opt="label=disable" \
            -v {{ home }}/static:{{ docker_home }}/static:Z \
            -v {{ home }}/storage:{{ docker_home }}/storage:Z \

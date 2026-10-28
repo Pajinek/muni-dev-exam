@@ -25,9 +25,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="completedtraining",
             name="id_zamestnance",
-            field=models.CharField(
-                blank=True, db_index=True, max_length=20, null=True
-            ),
+            field=models.CharField(blank=True, db_index=True, max_length=20, null=True),
         ),
         migrations.RunPython(fix_orphan_id_zamestnance, migrations.RunPython.noop),
         migrations.AlterField(

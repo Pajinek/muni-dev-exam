@@ -1,4 +1,4 @@
-
-  # host
-  email: "root@localhost"
-  http_port: "8000"
+---
+email: "studenik@varhoo.cz"
+http_port: "8010"
+env_file: "/var/opt/secrets/muni_exam"

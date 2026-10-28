@@ -19,9 +19,7 @@ class Department(models.Model):
     def kod_from_nazev(nazev: str) -> str:
         """Odstraní diakritiku, převede na malá písmena, bílé znaky → _."""
         normalized = unicodedata.normalize("NFKD", nazev.strip())
-        without_diacritics = "".join(
-            c for c in normalized if not unicodedata.combining(c)
-        )
+        without_diacritics = "".join(c for c in normalized if not unicodedata.combining(c))
         lower = without_diacritics.casefold()
         return re.sub(r"\s+", "_", lower)[:32]
 
@@ -205,6 +203,18 @@ class TrainingDate(models.Model):
         PLANNED = "plánováno", "plánováno"
         CANCELLED = "zrušeno", "zrušeno"
 
+    # Pole měněná při importu / sloupcích admin list_display (bez PK)
+    DATA_FIELDS = (
+        "kod_skoleni",
+        "datum",
+        "cas",
+        "misto",
+        "kapacita",
+        "obsazeno",
+        "cena_na_osobu",
+        "stav",
+    )
+
     id_terminu = models.CharField(max_length=20, primary_key=True)
     kod_skoleni = models.ForeignKey(CatalogTraining, on_delete=models.CASCADE, related_name="training_dates")
     datum = models.DateField()
@@ -231,6 +241,20 @@ class TrainingDate(models.Model):
 class CompletedTraining(models.Model):
     """Absolvované školení z exportu absolvovana_skoleni.csv."""
 
+    # Základní sloupce sdílené admin list_display a importem
+    CORE_FIELDS = (
+        "id_zamestnance",
+        "zamestnanec",
+        "kod_skoleni",
+        "datum_absolvovani",
+        "platnost_do",
+    )
+    DATA_FIELDS = CORE_FIELDS + (
+        "poskytovatel",
+        "cena_kc",
+        "poznamka",
+    )
+
     id_zaznamu = models.CharField(max_length=32, primary_key=True)
     id_zamestnance = models.ForeignKey(
         Employee,
@@ -252,9 +276,7 @@ class CompletedTraining(models.Model):
     platnost_do = models.DateField(null=True, blank=True)
     poskytovatel = models.CharField(max_length=128, blank=True)
     # CSV: „0,00“, „1 200,00“, záporné / „0,- Kč“ – číselný výklad při importu
-    cena_kc = models.DecimalField(
-        max_digits=10, decimal_places=2, null=True, blank=True
-    )
+    cena_kc = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     poznamka = models.TextField(blank=True)
 
     class Meta:
@@ -287,4 +309,3 @@ class CompletedTraining(models.Model):
         if expected is None or actual is None:
             return False
         return actual == expected
-

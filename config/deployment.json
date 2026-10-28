@@ -1,0 +1,33 @@
+{
+  "hostname": "s5.varhoo.cz",
+  "command": "vh::docker::deploy",
+  "title": "CI deploy muni-exam",
+  "files": [
+    {
+      "source": "config/8010-muni-exam.conf",
+      "path": "/etc/apache2/sites-enabled/8010-muni-exam.conf",
+      "mode": "0644"
+    },
+    {
+      "source": "config/8010-muni-exam-le-ssl.conf",
+      "path": "/etc/apache2/sites-enabled/8010-muni-exam-le-ssl.conf",
+      "mode": "0644"
+    }
+  ],
+  "params": {
+    "registry": "registry.slavicin.unart.cz/pajinek/muni-dev-exam:latest",
+    "name": "muni_exam.prod",
+    "p": "127.0.0.1:8010:80",
+    "restart": "unless-stopped",
+    "security-opt": "label=disable",
+    "v": [
+      "/var/www/muni_exam/static:/app/muni_exam/static:Z",
+      "/var/www/muni_exam/data:/app/data:Z"
+    ],
+    "env-file": "/var/opt/secrets/muni_exam",
+    "e": [
+      "DJANGO_SETTINGS_MODULE=muni_exam.settings.production",
+      "CSRF_TRUSTED_ORIGINS=https://muni-exam.brno.pavelstudenik.cz,http://muni-exam.brno.pavelstudenik.cz"
+    ]
+  }
+}
