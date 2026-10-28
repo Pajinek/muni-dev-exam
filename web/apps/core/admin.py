@@ -64,7 +64,8 @@ class TrainingDateAdmin(admin.ModelAdmin):
         "stav",
     )
     list_filter = ("stav", "kod_skoleni", "misto")
-    search_fields = ("id_terminu", "kod_skoleni", "misto")
+    search_fields = ("id_terminu", "kod_skoleni__kod", "kod_skoleni__nazev", "misto")
+    autocomplete_fields = ("kod_skoleni",)
     readonly_fields = ("id_terminu",)
 
 
@@ -85,6 +86,8 @@ class CompletedTrainingAdmin(admin.ModelAdmin):
         "id_zaznamu",
         "id_zamestnance",
         "zamestnanec",
-        "kod_skoleni",
+        "kod_skoleni__kod",
+        "kod_skoleni__nazev",
     )
+    autocomplete_fields = ("kod_skoleni",)
     readonly_fields = ("id_zaznamu",)

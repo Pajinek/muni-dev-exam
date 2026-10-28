@@ -96,7 +96,7 @@ class CatalogTraining(models.Model):
         verbose_name_plural = "katalog školení"
 
     def __str__(self) -> str:
-        return f"{self.kod} – {self.nazev}"
+        return f"{self.nazev}"
 
 
 class TrainingDate(models.Model):
@@ -107,7 +107,7 @@ class TrainingDate(models.Model):
         CANCELLED = "zrušeno", "zrušeno"
 
     id_terminu = models.CharField(max_length=20, primary_key=True)
-    kod_skoleni = models.CharField(max_length=32, db_index=True)
+    kod_skoleni = models.ForeignKey(CatalogTraining, on_delete=models.CASCADE, related_name="training_dates")
     datum = models.DateField()
     cas = models.CharField(max_length=32)
     misto = models.CharField(max_length=128)
@@ -136,7 +136,13 @@ class CompletedTraining(models.Model):
     id_zamestnance = models.CharField(max_length=20, db_index=True, blank=True)
     # denormalizované jméno z exportu (Příjmení Jméno)
     zamestnanec = models.CharField(max_length=128, blank=True)
-    kod_skoleni = models.CharField(max_length=32, db_index=True, blank=True)
+    kod_skoleni = models.ForeignKey(
+        CatalogTraining,
+        on_delete=models.CASCADE,
+        related_name="completed_trainings",
+        null=True,
+        blank=True,
+    )
     datum_absolvovani = models.DateField(null=True, blank=True)
     platnost_do = models.DateField(null=True, blank=True)
     poskytovatel = models.CharField(max_length=128, blank=True)

@@ -136,7 +136,7 @@ def _is_junk_completed_row(row: dict[str, str]) -> bool:
 
 def row_to_catalog(row: dict[str, str]) -> CatalogTraining:
     return CatalogTraining(
-        kod=row["kod"].strip(),
+        kod=row["kod"].strip().upper(),
         nazev=row.get("nazev", "").strip(),
         platnost_mesicu=(row.get("platnost_mesicu") or "").strip(),
         povinne_pro=(row.get("povinne_pro") or "").strip(),
@@ -176,13 +176,44 @@ def row_to_employee(row: dict[str, str]) -> Employee:
     )
 
 
+# známé překlepy / varianty v exportu → kód z katalogu
+_KOD_SKOLENI_TYPOS = {
+    "KYB3R": "KYBER",
+    "BOZP-X": "BOZP-Z",
+    "GDPR-2": "GDPR",
+}
+
+
+def normalize_kod_skoleni(value: str | None) -> str:
+    """Normalizace kódu školení z exportu (mezery/_ → -, upper, překlepy)."""
+    kod = (value or "").strip().replace(" ", "-").replace("_", "-").upper()
+    return _KOD_SKOLENI_TYPOS.get(kod, kod)
+
+
+def resolve_catalog_training(
+    kod: str | None,
+    *,
+    required: bool = True,
+) -> CatalogTraining | None:
+    """Vrátí CatalogTraining podle kódu; neznámý kód → ValueError."""
+    normalized = normalize_kod_skoleni(kod)
+    if not normalized:
+        if required:
+            raise ValueError("Chybí kod_skoleni")
+        return None
+    try:
+        return CatalogTraining.objects.get(pk=normalized)
+    except CatalogTraining.DoesNotExist as exc:
+        raise ValueError(f"Neznámý kod_skoleni: {normalized!r}") from exc
+
+
 def row_to_training_date(row: dict[str, str]) -> TrainingDate:
     termin = parse_date(row.get("datum"))
     if termin is None:
         raise ValueError(f"Chybí datum u termínu {row.get('id_terminu')!r}")
     return TrainingDate(
         id_terminu=row["id_terminu"].strip(),
-        kod_skoleni=row.get("kod_skoleni", "").strip(),
+        kod_skoleni=resolve_catalog_training(row.get("kod_skoleni")),
         datum=termin,
         cas=(row.get("cas") or "").strip(),
         misto=(row.get("misto") or "").strip(),
@@ -200,7 +231,7 @@ def row_to_completed(row: dict[str, str]) -> CompletedTraining | None:
         id_zaznamu=row["id_zaznamu"].strip(),
         id_zamestnance=(row.get("id_zamestnance") or "").strip(),
         zamestnanec=(row.get("zamestnanec") or "").strip(),
-        kod_skoleni=(row.get("kod_skoleni") or "").strip(),
+        kod_skoleni=resolve_catalog_training(row.get("kod_skoleni"), required=False),
         datum_absolvovani=parse_date(row.get("datum_absolvovani") or None),
         platnost_do=parse_date(row.get("platnost_do") or None),
         poskytovatel=(row.get("poskytovatel") or "").strip(),
