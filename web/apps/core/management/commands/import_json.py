@@ -64,4 +64,15 @@ class Command(BaseCommand):
                 f"(řádků v souboru: {info['rows_in_file']})"
             )
 
+        inconsistencies: list[str] = stats.get("inconsistencies") or []
+        if inconsistencies:
+            self.stdout.write("")
+            self.stdout.write(
+                self.style.WARNING(
+                    f"Nekonzistence dat ({len(inconsistencies)}):"
+                )
+            )
+            for msg in inconsistencies:
+                self.stdout.write(self.style.ERROR(f"  {msg}"))
+
         self.stdout.write(self.style.SUCCESS("Hotovo."))

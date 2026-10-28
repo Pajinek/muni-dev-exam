@@ -7,6 +7,7 @@ import logging
 import re
 from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
+from functools import partial
 from pathlib import Path
 from typing import Any, Callable
 
@@ -194,8 +195,9 @@ def resolve_catalog_training(
     kod: str | None,
     *,
     required: bool = True,
+    issues: list[str] | None = None,
 ) -> CatalogTraining | None:
-    """Vrátí CatalogTraining podle kódu; neznámý kód → ValueError."""
+    """Vrátí CatalogTraining podle kódu; neznámý kód → ValueError (nebo None + log)."""
     normalized = normalize_kod_skoleni(kod)
     if not normalized:
         if required:
@@ -204,7 +206,37 @@ def resolve_catalog_training(
     try:
         return CatalogTraining.objects.get(pk=normalized)
     except CatalogTraining.DoesNotExist as exc:
-        raise ValueError(f"Neznámý kod_skoleni: {normalized!r}") from exc
+        msg = f"Neznámý kod_skoleni: {normalized!r}"
+        if required:
+            raise ValueError(msg) from exc
+        logger.error(msg)
+        if issues is not None:
+            issues.append(msg)
+        return None
+
+
+def resolve_employee(
+    id_zamestnance: str | None,
+    *,
+    required: bool = True,
+    issues: list[str] | None = None,
+) -> Employee | None:
+    """Vrátí Employee podle id; neznámé id → ValueError (nebo None + log při required=False)."""
+    pk = (id_zamestnance or "").strip()
+    if not pk:
+        if required:
+            raise ValueError("Chybí id_zamestnance")
+        return None
+    try:
+        return Employee.objects.get(pk=pk)
+    except Employee.DoesNotExist as exc:
+        msg = f"Neznámý id_zamestnance: {pk!r}"
+        if required:
+            raise ValueError(msg) from exc
+        logger.error(msg)
+        if issues is not None:
+            issues.append(msg)
+        return None
 
 
 def row_to_training_date(row: dict[str, str]) -> TrainingDate:
@@ -224,14 +256,22 @@ def row_to_training_date(row: dict[str, str]) -> TrainingDate:
     )
 
 
-def row_to_completed(row: dict[str, str]) -> CompletedTraining | None:
+def row_to_completed(
+    row: dict[str, str],
+    *,
+    issues: list[str] | None = None,
+) -> CompletedTraining | None:
     if _is_junk_completed_row(row):
         return None
     return CompletedTraining(
         id_zaznamu=row["id_zaznamu"].strip(),
-        id_zamestnance=(row.get("id_zamestnance") or "").strip(),
+        id_zamestnance=resolve_employee(
+            row.get("id_zamestnance"), required=False, issues=issues
+        ),
         zamestnanec=(row.get("zamestnanec") or "").strip(),
-        kod_skoleni=resolve_catalog_training(row.get("kod_skoleni"), required=False),
+        kod_skoleni=resolve_catalog_training(
+            row.get("kod_skoleni"), required=False, issues=issues
+        ),
         datum_absolvovani=parse_date(row.get("datum_absolvovani") or None),
         platnost_do=parse_date(row.get("platnost_do") or None),
         poskytovatel=(row.get("poskytovatel") or "").strip(),
@@ -273,7 +313,12 @@ def import_all(
     clear: bool = False,
 ) -> ImportStats:
     data_dir = Path(data_dir)
-    stats: ImportStats = {"data_dir": str(data_dir), "files": {}}
+    issues: list[str] = []
+    stats: ImportStats = {
+        "data_dir": str(data_dir),
+        "files": {},
+        "inconsistencies": issues,
+    }
 
     if clear:
         CompletedTraining.objects.all().delete()
@@ -328,7 +373,7 @@ def import_all(
         ),
         (
             "absolvovana_skoleni.json",
-            row_to_completed,
+            partial(row_to_completed, issues=issues),
             CompletedTraining,
             "id_zaznamu",
             [
@@ -352,6 +397,7 @@ def import_all(
         by_pk: dict[str, object] = {}
         skipped = 0
         dupes = 0
+        issues_before = len(issues)
         for row in rows:
             obj = mapper(row)
             if obj is None:
@@ -372,6 +418,7 @@ def import_all(
             "updated": updated,
             "skipped": skipped,
             "duplicates_dropped": dupes,
+            "inconsistencies": len(issues) - issues_before,
         }
 
     return stats

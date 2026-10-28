@@ -40,6 +40,7 @@ python manage.py import_json --data-dir imports/ --clear
 ```
 
 JSON soubory leží ve `web/imports/` (kopie výstupů `csv_import.py`). Bez `--data-dir` se bere kořen repozitáře.
+
 ### Duplicitní a přeskočené záznamy
 
 Import je idempotentní podle primárního klíče. Při opakovaném výskytu stejného ID se do DB uloží jen první výskyt (`duplicit`); neplatné / šumové řádky (prázdné ID, komentáře `#…`, součovací řádky) se počítají jako `přeskočeno`.
@@ -47,10 +48,20 @@ Import je idempotentní podle primárního klíče. Při opakovaném výskytu st
 Typický výstup z `import_json` nad přiloženými exporty:
 
 ```
-katalog_skoleni.json: 10 importováno (+0 / ~10), přeskočeno 0, duplicit 0 (řádků v souboru: 10)
-zamestnanci.json: 174 importováno (+0 / ~174), přeskočeno 0, duplicit 0 (řádků v souboru: 174)
-terminy_skoleni.json: 34 importováno (+0 / ~34), přeskočeno 0, duplicit 0 (řádků v souboru: 34)
-absolvovana_skoleni.json: 2850 importováno (+0 / ~2850), přeskočeno 3, duplicit 15 (řádků v souboru: 2868)
+katalog_skoleni.json: 10 importováno (+10 / ~0), přeskočeno 0, duplicit 0 (řádků v souboru: 10)
+zamestnanci.json: 174 importováno (+174 / ~0), přeskočeno 0, duplicit 0 (řádků v souboru: 174)
+terminy_skoleni.json: 34 importováno (+34 / ~0), přeskočeno 0, duplicit 0 (řádků v souboru: 34)
+absolvovana_skoleni.json: 2850 importováno (+2850 / ~0), přeskočeno 3, duplicit 15 (řádků v souboru: 2868)
+
+Nekonzistence dat (9):
+  Neznámý id_zamestnance: 'E9006'
+  Neznámý id_zamestnance: 'E9001'
+  …
+  Neznámý id_zamestnance: 'E9005'
 ```
 
 U `absolvovana_skoleni` tedy z 2868 řádků zbývá **2850** platných unikátních záznamů (3 přeskočené + 15 duplicit podle `id_zaznamu`).
+
+### Problémy v datech při importu
+
+Některé řádky v `absolvovana_skoleni` odkazují na `id_zamestnance` mimo `zamestnanci` (`E9001`–`E9009`, 9 záznamů). Import je vypíše jako **Nekonzistence dat**, záznam uloží s prázdnou FK a pokračuje dál. Stejně by se ohlásil i neznámý `kod_skoleni`.

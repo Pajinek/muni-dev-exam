@@ -87,6 +87,22 @@ class Employee(models.Model):
         return f"{self.prijmeni} {self.jmeno} ({self.id_zamestnance})"
 
 
+class ActiveEmployeeManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().filter(stav=Employee.Status.ACTIVE)
+
+
+class ActiveEmployee(Employee):
+    """Proxy model – pouze zaměstnanci se stavem aktivní."""
+
+    objects = ActiveEmployeeManager()
+
+    class Meta:
+        proxy = True
+        verbose_name = "aktivní zaměstnanec"
+        verbose_name_plural = "aktivní zaměstnanci"
+
+
 class CatalogTraining(models.Model):
     """Druh školení z exportu katalog_skoleni.csv."""
 
@@ -158,7 +174,13 @@ class CompletedTraining(models.Model):
     """Absolvované školení z exportu absolvovana_skoleni.csv."""
 
     id_zaznamu = models.CharField(max_length=32, primary_key=True)
-    id_zamestnance = models.CharField(max_length=20, db_index=True, blank=True)
+    id_zamestnance = models.ForeignKey(
+        Employee,
+        on_delete=models.CASCADE,
+        related_name="completed_trainings",
+        null=True,
+        blank=True,
+    )
     # denormalizované jméno z exportu (Příjmení Jméno)
     zamestnanec = models.CharField(max_length=128, blank=True)
     kod_skoleni = models.ForeignKey(
