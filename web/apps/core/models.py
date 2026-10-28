@@ -99,8 +99,8 @@ class ActiveEmployee(Employee):
 
     class Meta:
         proxy = True
-        verbose_name = "aktivní zaměstnanec"
-        verbose_name_plural = "aktivní zaměstnanci"
+        verbose_name = "přehled povinných školení"
+        verbose_name_plural = "přehled povinných školení"
 
 
 class CatalogTraining(models.Model):
@@ -138,6 +138,35 @@ class CatalogTraining(models.Model):
     @property
     def platnost_mesicu_int(self) -> int | None:
         return self.parse_platnost_mesicu(self.platnost_mesicu)
+
+
+class MissingRequiredTraining(models.Model):
+    """Missing required training (admin inline rows for active employees)."""
+
+    employee = models.ForeignKey(
+        Employee,
+        on_delete=models.CASCADE,
+        related_name="missing_required_trainings",
+    )
+    catalog = models.ForeignKey(
+        CatalogTraining,
+        on_delete=models.CASCADE,
+        related_name="missing_for_employees",
+    )
+
+    class Meta:
+        ordering = ["catalog__kod"]
+        verbose_name = "missing required training"
+        verbose_name_plural = "missing required trainings"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["employee", "catalog"],
+                name="uniq_missing_required_training",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.employee_id}: {self.catalog_id}"
 
 
 class TrainingDate(models.Model):

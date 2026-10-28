@@ -1,8 +1,20 @@
 from datetime import date
 
 from django.contrib import admin
-from django.db.models import Prefetch, QuerySet
+from django.db.models import (
+    BooleanField,
+    Case,
+    OuterRef,
+    Prefetch,
+    Q,
+    QuerySet,
+    Subquery,
+    Value,
+    When,
+)
+from django.urls import reverse
 from django.utils import timezone
+from django.utils.html import format_html
 
 from .models import (
     ActiveEmployee,
@@ -10,8 +22,17 @@ from .models import (
     CompletedTraining,
     Department,
     Employee,
+    MissingRequiredTraining,
     TrainingDate,
 )
+
+# Snapshot exportu CSV (README) — referenční datum dat v administraci
+EXPORT_DATE = date(2026, 10, 1)
+EXPORT_DATE_LABEL = EXPORT_DATE.strftime("%-d. %-m. %Y")
+
+admin.site.site_header = f"Evidence školení — data z exportu {EXPORT_DATE_LABEL}"
+admin.site.site_title = "Evidence školení"
+admin.site.index_title = f"Přehled (export {EXPORT_DATE_LABEL})"
 
 
 def _is_training_required(catalog: CatalogTraining, employee: Employee) -> bool:
@@ -72,6 +93,15 @@ def _missing_required_pks(
     return missing
 
 
+def _missing_required_catalogs(
+    employee: Employee, catalogs: list[CatalogTraining], today: date
+) -> list[CatalogTraining]:
+    missing = _required_training_codes(employee, catalogs) - _valid_training_codes(
+        employee, today
+    )
+    return [c for c in catalogs if c.kod in missing]
+
+
 class PlatneSkoleniFilter(admin.SimpleListFilter):
     """Filtr zaměstnanců podle katalogu – jen ti s dosud platným školením."""
 
@@ -119,6 +149,127 @@ class ChybiPovinneSkoleniFilter(admin.SimpleListFilter):
         # Prefetch už zajišťuje ActiveEmployeeAdmin.get_queryset — nepřidávat znovu.
         missing = _missing_required_pks(queryset, catalogs, today)
         return queryset.filter(pk__in=missing)
+
+
+class AbsolvovanaSkoleniInline(admin.TabularInline):
+    """Read-only inline: všechna absolvovaná školení zaměstnance s flagem platnosti."""
+
+    model = CompletedTraining
+    fk_name = "id_zamestnance"
+    extra = 0
+    can_delete = False
+    show_change_link = False
+    verbose_name = "absolvované školení"
+    verbose_name_plural = "absolvovaná školení"
+    fields = (
+        "kod_skoleni",
+        "datum_absolvovani",
+        "platnost_do",
+        "je_platne",
+        "poskytovatel",
+    )
+    readonly_fields = fields
+    ordering = ()
+
+    def has_add_permission(self, request, obj=None) -> bool:
+        return False
+
+    def has_change_permission(self, request, obj=None) -> bool:
+        return True
+
+    def has_delete_permission(self, request, obj=None) -> bool:
+        return False
+
+    def get_queryset(self, request):
+        today = timezone.localdate()
+        # Platná (aktivní) první; logika shodná s _is_completed_valid.
+        return (
+            super()
+            .get_queryset(request)
+            .select_related("kod_skoleni")
+            .annotate(
+                _platne=Case(
+                    When(kod_skoleni__isnull=True, then=Value(False)),
+                    When(
+                        Q(kod_skoleni__platnost_mesicu="")
+                        | Q(kod_skoleni__platnost_mesicu="0"),
+                        then=Value(True),
+                    ),
+                    When(platnost_do__gte=today, then=Value(True)),
+                    default=Value(False),
+                    output_field=BooleanField(),
+                )
+            )
+            .order_by("-_platne", "kod_skoleni__kod", "-datum_absolvovani")
+        )
+
+    @admin.display(boolean=True, description="platná")
+    def je_platne(self, obj: CompletedTraining) -> bool:
+        if obj.kod_skoleni is None:
+            return False
+        return _is_completed_valid(obj, obj.kod_skoleni, timezone.localdate())
+
+
+class ChybejiciSkoleniInline(admin.TabularInline):
+    """Read-only inline: required trainings that are missing or no longer valid."""
+
+    model = MissingRequiredTraining
+    fk_name = "employee"
+    extra = 0
+    can_delete = False
+    show_change_link = False
+    verbose_name = "missing required training"
+    verbose_name_plural = "missing required trainings"
+    fields = ("code", "name", "validity_months", "required_for", "ended_on")
+    readonly_fields = fields
+
+    def has_add_permission(self, request, obj=None) -> bool:
+        return False
+
+    def has_change_permission(self, request, obj=None) -> bool:
+        return True
+
+    def has_delete_permission(self, request, obj=None) -> bool:
+        return False
+
+    def get_queryset(self, request):
+        latest_end = (
+            CompletedTraining.objects.filter(
+                id_zamestnance_id=OuterRef("employee_id"),
+                kod_skoleni_id=OuterRef("catalog_id"),
+            )
+            .order_by("-platnost_do", "-datum_absolvovani")
+            .values("platnost_do")[:1]
+        )
+        return (
+            super()
+            .get_queryset(request)
+            .select_related("catalog")
+            .annotate(_ended_on=Subquery(latest_end))
+        )
+
+    @admin.display(description="code")
+    def code(self, obj: MissingRequiredTraining) -> str:
+        return obj.catalog.kod
+
+    @admin.display(description="name")
+    def name(self, obj: MissingRequiredTraining) -> str:
+        return obj.catalog.nazev
+
+    @admin.display(description="validity (months)")
+    def validity_months(self, obj: MissingRequiredTraining) -> str:
+        return obj.catalog.platnost_mesicu or "—"
+
+    @admin.display(description="required for")
+    def required_for(self, obj: MissingRequiredTraining) -> str:
+        return obj.catalog.povinne_pro or "—"
+
+    @admin.display(description="ended on")
+    def ended_on(self, obj: MissingRequiredTraining) -> str:
+        ended = getattr(obj, "_ended_on", None)
+        if ended is None:
+            return "—"
+        return ended.isoformat()
 
 
 @admin.register(Department)
@@ -174,6 +325,23 @@ class ActiveEmployeeAdmin(EmployeeAdmin):
         PlatneSkoleniFilter,
         ChybiPovinneSkoleniFilter,
     )
+    fields = (
+        "odkaz_zamestnanec",
+        ("jmeno", "prijmeni"),
+        ("email", "vedouci_email"),
+        ("department", "pozice"),
+    )
+    readonly_fields = (
+        "odkaz_zamestnanec",
+        "jmeno",
+        "prijmeni",
+        "email",
+        "vedouci_email",
+        "department",
+        "pozice",
+    )
+    autocomplete_fields = ()
+    inlines = (ChybejiciSkoleniInline, AbsolvovanaSkoleniInline)
 
     def get_queryset(self, request):
         self._catalogs = list(CatalogTraining.objects.all())
@@ -189,6 +357,56 @@ class ActiveEmployeeAdmin(EmployeeAdmin):
             )
         )
 
+    def changeform_view(self, request, object_id=None, form_url="", extra_context=None):
+        if object_id:
+            self._sync_missing_required_trainings(object_id)
+        return super().changeform_view(request, object_id, form_url, extra_context)
+
+    def _sync_missing_required_trainings(self, employee_id: str) -> None:
+        """Obnoví řádky MissingRequiredTraining podle aktuální povinnosti a platnosti."""
+        try:
+            employee = (
+                ActiveEmployee.objects.select_related("department")
+                .prefetch_related(
+                    Prefetch(
+                        "completed_trainings",
+                        queryset=CompletedTraining.objects.select_related(
+                            "kod_skoleni"
+                        ),
+                    )
+                )
+                .get(pk=employee_id)
+            )
+        except ActiveEmployee.DoesNotExist:
+            return
+
+        catalogs = getattr(self, "_catalogs", None)
+        if catalogs is None:
+            catalogs = list(CatalogTraining.objects.all())
+        missing = _missing_required_catalogs(
+            employee, catalogs, timezone.localdate()
+        )
+        MissingRequiredTraining.objects.filter(employee_id=employee_id).delete()
+        MissingRequiredTraining.objects.bulk_create(
+            [
+                MissingRequiredTraining(employee_id=employee_id, catalog=c)
+                for c in missing
+            ]
+        )
+
+    def save_formset(self, request, form, formset, change):
+        # Inliny jsou jen zobrazení – neukládat ruční změny.
+        if formset.model in (MissingRequiredTraining, CompletedTraining):
+            return
+        super().save_formset(request, form, formset, change)
+
+    @admin.display(description="zaměstnanec")
+    def odkaz_zamestnanec(self, obj: ActiveEmployee) -> str:
+        if not obj or not obj.pk:
+            return "—"
+        url = reverse("admin:core_employee_change", args=[obj.pk])
+        return format_html('<a href="{}">{}</a>', url, obj)
+
     @admin.display(description="platná školení")
     def platna_skoleni(self, obj: ActiveEmployee) -> str:
         return ",".join(sorted(_valid_training_codes(obj, timezone.localdate())))
@@ -198,11 +416,10 @@ class ActiveEmployeeAdmin(EmployeeAdmin):
         catalogs = getattr(self, "_catalogs", None)
         if catalogs is None:
             catalogs = list(CatalogTraining.objects.all())
-        required = _required_training_codes(obj, catalogs)
-        if not required:
-            return True
         # False = chybí povinné platné školení
-        return not bool(required - _valid_training_codes(obj, timezone.localdate()))
+        return not bool(
+            _missing_required_catalogs(obj, catalogs, timezone.localdate())
+        )
 
 
 @admin.register(CatalogTraining)
