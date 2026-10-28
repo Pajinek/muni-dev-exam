@@ -19,9 +19,7 @@ class Department(models.Model):
     def kod_from_nazev(nazev: str) -> str:
         """Odstraní diakritiku, převede na malá písmena, bílé znaky → _."""
         normalized = unicodedata.normalize("NFKD", nazev.strip())
-        without_diacritics = "".join(
-            c for c in normalized if not unicodedata.combining(c)
-        )
+        without_diacritics = "".join(c for c in normalized if not unicodedata.combining(c))
         lower = without_diacritics.casefold()
         return re.sub(r"\s+", "_", lower)[:32]
 
@@ -252,9 +250,7 @@ class CompletedTraining(models.Model):
     platnost_do = models.DateField(null=True, blank=True)
     poskytovatel = models.CharField(max_length=128, blank=True)
     # CSV: „0,00“, „1 200,00“, záporné / „0,- Kč“ – číselný výklad při importu
-    cena_kc = models.DecimalField(
-        max_digits=10, decimal_places=2, null=True, blank=True
-    )
+    cena_kc = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     poznamka = models.TextField(blank=True)
 
     class Meta:
@@ -287,4 +283,3 @@ class CompletedTraining(models.Model):
         if expected is None or actual is None:
             return False
         return actual == expected
-

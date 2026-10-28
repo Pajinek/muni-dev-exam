@@ -67,11 +67,7 @@ class Command(BaseCommand):
         inconsistencies: list[str] = stats.get("inconsistencies") or []
         if inconsistencies:
             self.stdout.write("")
-            self.stdout.write(
-                self.style.WARNING(
-                    f"Nekonzistence dat ({len(inconsistencies)}):"
-                )
-            )
+            self.stdout.write(self.style.WARNING(f"Nekonzistence dat ({len(inconsistencies)}):"))
             for msg in inconsistencies:
                 self.stdout.write(self.style.ERROR(f"  {msg}"))
 

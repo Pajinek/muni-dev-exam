@@ -92,13 +92,7 @@ def parse_czech_decimal(value: str | None) -> Decimal | None:
     if lowered in {"zdarma", "cena_kc"}:
         return Decimal("0") if lowered == "zdarma" else None
 
-    cleaned = (
-        raw.replace("\xa0", " ")
-        .replace("Kč", "")
-        .replace("kc", "")
-        .replace("KC", "")
-        .strip()
-    )
+    cleaned = raw.replace("\xa0", " ").replace("Kč", "").replace("kc", "").replace("KC", "").strip()
     # „0,-“ / „0,- “
     cleaned = re.sub(r",-\s*$", ",00", cleaned)
     cleaned = cleaned.replace(" ", "").replace(",", ".")
@@ -158,9 +152,7 @@ def get_or_create_department(nazev: str) -> Department | None:
 def row_to_employee(row: dict[str, str]) -> Employee:
     nastup = parse_date(row.get("datum_nastupu"))
     if nastup is None:
-        raise ValueError(
-            f"Chybí datum_nastupu u zaměstnance {row.get('id_zamestnance')!r}"
-        )
+        raise ValueError(f"Chybí datum_nastupu u zaměstnance {row.get('id_zamestnance')!r}")
     return Employee(
         id_zamestnance=row["id_zamestnance"].strip(),
         jmeno=Employee.normalize_name(row.get("jmeno", "")),
@@ -265,13 +257,9 @@ def row_to_completed(
         return None
     return CompletedTraining(
         id_zaznamu=row["id_zaznamu"].strip(),
-        id_zamestnance=resolve_employee(
-            row.get("id_zamestnance"), required=False, issues=issues
-        ),
+        id_zamestnance=resolve_employee(row.get("id_zamestnance"), required=False, issues=issues),
         zamestnanec=(row.get("zamestnanec") or "").strip(),
-        kod_skoleni=resolve_catalog_training(
-            row.get("kod_skoleni"), required=False, issues=issues
-        ),
+        kod_skoleni=resolve_catalog_training(row.get("kod_skoleni"), required=False, issues=issues),
         datum_absolvovani=parse_date(row.get("datum_absolvovani") or None),
         platnost_do=parse_date(row.get("platnost_do") or None),
         poskytovatel=(row.get("poskytovatel") or "").strip(),
@@ -290,9 +278,9 @@ def _upsert(
     if not objects:
         return 0, 0
     existing = set(
-        model.objects.filter(
-            **{f"{pk_field}__in": [getattr(o, pk_field) for o in objects]}
-        ).values_list(pk_field, flat=True)
+        model.objects.filter(**{f"{pk_field}__in": [getattr(o, pk_field) for o in objects]}).values_list(
+            pk_field, flat=True
+        )
     )
     to_create = [o for o in objects if getattr(o, pk_field) not in existing]
     to_update = [o for o in objects if getattr(o, pk_field) in existing]

@@ -2,7 +2,6 @@ from django.test import Client, TestCase
 
 
 class GiverTestCase(TestCase):
-
     def setUp(self):
         self.cli = Client()
 

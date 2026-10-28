@@ -74,9 +74,7 @@ def _is_training_eligible(catalog: CatalogTraining, employee: Employee) -> bool:
     return False
 
 
-def _open_training_dates_for(
-    employee: Employee, today: date
-) -> list[TrainingDate]:
+def _open_training_dates_for(employee: Employee, today: date) -> list[TrainingDate]:
     """Plánované budoucí termíny s volnou kapacitou, na které se může přihlásit."""
     dates = (
         TrainingDate.objects.filter(
@@ -89,15 +87,11 @@ def _open_training_dates_for(
     return [
         td
         for td in dates
-        if td.volno > 0
-        and td.kod_skoleni is not None
-        and _is_training_eligible(td.kod_skoleni, employee)
+        if td.volno > 0 and td.kod_skoleni is not None and _is_training_eligible(td.kod_skoleni, employee)
     ]
 
 
-def _is_completed_valid(
-    completed: CompletedTraining, catalog: CatalogTraining, today: date
-) -> bool:
+def _is_completed_valid(completed: CompletedTraining, catalog: CatalogTraining, today: date) -> bool:
     months = catalog.platnost_mesicu_int
     if months is None or months == 0:
         return True
@@ -114,15 +108,11 @@ def _valid_training_codes(employee: Employee, today: date) -> set[str]:
     return kody
 
 
-def _required_training_codes(
-    employee: Employee, catalogs: list[CatalogTraining]
-) -> set[str]:
+def _required_training_codes(employee: Employee, catalogs: list[CatalogTraining]) -> set[str]:
     return {c.kod for c in catalogs if _is_training_required(c, employee)}
 
 
-def _missing_required_pks(
-    queryset: QuerySet, catalogs: list[CatalogTraining], today: date
-) -> set[str]:
+def _missing_required_pks(queryset: QuerySet, catalogs: list[CatalogTraining], today: date) -> set[str]:
     missing: set[str] = set()
     for emp in queryset:
         required = _required_training_codes(emp, catalogs)
@@ -136,9 +126,7 @@ def _missing_required_pks(
 def _missing_required_catalogs(
     employee: Employee, catalogs: list[CatalogTraining], today: date
 ) -> list[CatalogTraining]:
-    missing = _required_training_codes(employee, catalogs) - _valid_training_codes(
-        employee, today
-    )
+    missing = _required_training_codes(employee, catalogs) - _valid_training_codes(employee, today)
     return [c for c in catalogs if c.kod in missing]
 
 
@@ -231,8 +219,7 @@ class AbsolvovanaSkoleniInline(admin.TabularInline):
                 _platne=Case(
                     When(kod_skoleni__isnull=True, then=Value(False)),
                     When(
-                        Q(kod_skoleni__platnost_mesicu="")
-                        | Q(kod_skoleni__platnost_mesicu="0"),
+                        Q(kod_skoleni__platnost_mesicu="") | Q(kod_skoleni__platnost_mesicu="0"),
                         then=Value(True),
                     ),
                     When(platnost_do__gte=today, then=Value(True)),
@@ -281,12 +268,7 @@ class ChybejiciSkoleniInline(admin.TabularInline):
             .order_by("-platnost_do", "-datum_absolvovani")
             .values("platnost_do")[:1]
         )
-        return (
-            super()
-            .get_queryset(request)
-            .select_related("catalog")
-            .annotate(_ended_on=Subquery(latest_end))
-        )
+        return super().get_queryset(request).select_related("catalog").annotate(_ended_on=Subquery(latest_end))
 
     @admin.display(description="code")
     def code(self, obj: MissingRequiredTraining) -> str:
@@ -410,9 +392,7 @@ class AvailableTrainingDateInline(admin.TabularInline):
         missing = getattr(self, "_missing_codes", None)
         if missing is None:
             missing = set(
-                MissingRequiredTraining.objects.filter(
-                    employee_id=obj.employee_id
-                ).values_list("catalog_id", flat=True)
+                MissingRequiredTraining.objects.filter(employee_id=obj.employee_id).values_list("catalog_id", flat=True)
             )
             self._missing_codes = missing
         return kod in missing
@@ -520,9 +500,7 @@ class ActiveEmployeeAdmin(EmployeeAdmin):
                 .prefetch_related(
                     Prefetch(
                         "completed_trainings",
-                        queryset=CompletedTraining.objects.select_related(
-                            "kod_skoleni"
-                        ),
+                        queryset=CompletedTraining.objects.select_related("kod_skoleni"),
                     )
                 )
                 .get(pk=employee_id)
@@ -539,15 +517,10 @@ class ActiveEmployeeAdmin(EmployeeAdmin):
         catalogs = getattr(self, "_catalogs", None)
         if catalogs is None:
             catalogs = list(CatalogTraining.objects.all())
-        missing = _missing_required_catalogs(
-            employee, catalogs, timezone.localdate()
-        )
+        missing = _missing_required_catalogs(employee, catalogs, timezone.localdate())
         MissingRequiredTraining.objects.filter(employee_id=employee_id).delete()
         MissingRequiredTraining.objects.bulk_create(
-            [
-                MissingRequiredTraining(employee_id=employee_id, catalog=c)
-                for c in missing
-            ]
+            [MissingRequiredTraining(employee_id=employee_id, catalog=c) for c in missing]
         )
 
     def _sync_available_training_dates(self, employee_id: str) -> None:
@@ -558,9 +531,7 @@ class ActiveEmployeeAdmin(EmployeeAdmin):
 
         open_dates = _open_training_dates_for(employee, timezone.localdate())
         missing_codes = set(
-            MissingRequiredTraining.objects.filter(
-                employee_id=employee_id
-            ).values_list("catalog_id", flat=True)
+            MissingRequiredTraining.objects.filter(employee_id=employee_id).values_list("catalog_id", flat=True)
         )
         open_dates.sort(
             key=lambda td: (
@@ -573,10 +544,7 @@ class ActiveEmployeeAdmin(EmployeeAdmin):
         )
         AvailableTrainingDate.objects.filter(employee_id=employee_id).delete()
         AvailableTrainingDate.objects.bulk_create(
-            [
-                AvailableTrainingDate(employee_id=employee_id, training_date=td)
-                for td in open_dates
-            ]
+            [AvailableTrainingDate(employee_id=employee_id, training_date=td) for td in open_dates]
         )
 
     def save_formset(self, request, form, formset, change):
@@ -606,9 +574,7 @@ class ActiveEmployeeAdmin(EmployeeAdmin):
         if catalogs is None:
             catalogs = list(CatalogTraining.objects.all())
         # False = chybí povinné platné školení
-        return not bool(
-            _missing_required_catalogs(obj, catalogs, timezone.localdate())
-        )
+        return not bool(_missing_required_catalogs(obj, catalogs, timezone.localdate()))
 
 
 @admin.register(CatalogTraining)
