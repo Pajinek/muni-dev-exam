@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 720" width="1100" height="720" role="img" aria-label="Schema databaze Evidence skoleni">
+  <defs>
+    <style type="text/css"><![CDATA[
+      .title { font: 700 20px 'Segoe UI', system-ui, sans-serif; fill: #1a2332; }
+      .subtitle { font: 400 12px 'Segoe UI', system-ui, sans-serif; fill: #5a6577; }
+      .box { fill: #ffffff; stroke: #2c3e50; stroke-width: 1.5; }
+      .header { fill: #2c3e50; }
+      .header-text { font: 700 13px 'Segoe UI', system-ui, sans-serif; fill: #ffffff; }
+      .table-name { font: 400 10px 'Segoe UI', system-ui, sans-serif; fill: #a8b4c4; }
+      .col { font: 400 11px 'Consolas', 'Courier New', monospace; fill: #1a2332; }
+      .pk { fill: #c45c26; font-weight: 700; }
+      .fk { fill: #1a6b8a; }
+      .type { font: 400 10px 'Segoe UI', system-ui, sans-serif; fill: #7a8699; }
+      .rel { stroke: #5a6577; stroke-width: 1.5; fill: none; }
+      .rel-label { font: 400 10px 'Segoe UI', system-ui, sans-serif; fill: #5a6577; }
+      .note { font: 400 11px 'Segoe UI', system-ui, sans-serif; fill: #5a6577; }
+      .legend-box { fill: #f7f8fa; stroke: #d0d5dd; stroke-width: 1; }
+      .legend-title { font: 700 13px 'Segoe UI', system-ui, sans-serif; fill: #1a2332; }
+    ]]></style>
+    <marker id="crow-many" markerWidth="14" markerHeight="12" refX="14" refY="6" orient="auto">
+      <path d="M14,6 L4,1 M14,6 L4,6 M14,6 L4,11" stroke="#5a6577" stroke-width="1.5" fill="none"/>
+    </marker>
+  </defs>
+
+  <rect width="1100" height="720" fill="#f0f2f5"/>
+  <text x="40" y="36" class="title">Evidence skoleni &#8212; schema DB</text>
+  <text x="40" y="54" class="subtitle">Django: web/apps/core/models.py</text>
+
+  <!-- Department -->
+  <g transform="translate(40, 80)">
+    <rect class="box" width="220" height="118" rx="4"/>
+    <rect class="header" width="220" height="36" rx="4"/>
+    <rect class="header" y="20" width="220" height="16"/>
+    <text x="12" y="16" class="header-text">Department</text>
+    <text x="12" y="30" class="table-name">core_department</text>
+    <line x1="0" y1="36" x2="220" y2="36" stroke="#2c3e50"/>
+    <text x="12" y="54" class="col pk">PK id</text>
+    <text x="150" y="54" class="type">int</text>
+    <text x="12" y="74" class="col">kod</text>
+    <text x="150" y="74" class="type">UK varchar(32)</text>
+    <text x="12" y="94" class="col">nazev</text>
+    <text x="150" y="94" class="type">varchar(128)</text>
+  </g>
+
+  <!-- CatalogTraining -->
+  <g transform="translate(620, 80)">
+    <rect class="box" width="260" height="158" rx="4"/>
+    <rect class="header" width="260" height="36" rx="4"/>
+    <rect class="header" y="20" width="260" height="16"/>
+    <text x="12" y="16" class="header-text">CatalogTraining</text>
+    <text x="12" y="30" class="table-name">core_catalogtraining</text>
+    <line x1="0" y1="36" x2="260" y2="36" stroke="#2c3e50"/>
+    <text x="12" y="54" class="col pk">PK kod</text>
+    <text x="170" y="54" class="type">varchar(32)</text>
+    <text x="12" y="74" class="col">nazev</text>
+    <text x="170" y="74" class="type">varchar(256)</text>
+    <text x="12" y="94" class="col">platnost_mesicu</text>
+    <text x="170" y="94" class="type">varchar(32)</text>
+    <text x="12" y="114" class="col">povinne_pro</text>
+    <text x="170" y="114" class="type">varchar(256)</text>
+    <text x="12" y="134" class="col">poznamka</text>
+    <text x="170" y="134" class="type">text</text>
+  </g>
+
+  <!-- Employee -->
+  <g transform="translate(40, 260)">
+    <rect class="box" width="280" height="278" rx="4"/>
+    <rect class="header" width="280" height="36" rx="4"/>
+    <rect class="header" y="20" width="280" height="16"/>
+    <text x="12" y="16" class="header-text">Employee</text>
+    <text x="12" y="30" class="table-name">core_employee</text>
+    <line x1="0" y1="36" x2="280" y2="36" stroke="#2c3e50"/>
+    <text x="12" y="54" class="col pk">PK id_zamestnance</text>
+    <text x="190" y="54" class="type">varchar(20)</text>
+    <text x="12" y="74" class="col">jmeno / prijmeni</text>
+    <text x="190" y="74" class="type">varchar(128)</text>
+    <text x="12" y="94" class="col">email</text>
+    <text x="190" y="94" class="type">email</text>
+    <text x="12" y="114" class="col fk">FK department_id</text>
+    <text x="190" y="114" class="type">SET NULL</text>
+    <text x="12" y="134" class="col">pozice</text>
+    <text x="190" y="134" class="type">varchar(128)</text>
+    <text x="12" y="154" class="col">vedouci_email</text>
+    <text x="190" y="154" class="type">email</text>
+    <text x="12" y="174" class="col">datum_nastupu</text>
+    <text x="190" y="174" class="type">date</text>
+    <text x="12" y="194" class="col">datum_ukonceni</text>
+    <text x="190" y="194" class="type">date?</text>
+    <text x="12" y="214" class="col">stav</text>
+    <text x="190" y="214" class="type">choices</text>
+    <text x="12" y="234" class="col">rodne_cislo</text>
+    <text x="190" y="234" class="type">varchar(20)</text>
+    <text x="12" y="254" class="col">poznamka</text>
+    <text x="190" y="254" class="type">text</text>
+  </g>
+
+  <!-- TrainingDate -->
+  <g transform="translate(780, 280)">
+    <rect class="box" width="280" height="238" rx="4"/>
+    <rect class="header" width="280" height="36" rx="4"/>
+    <rect class="header" y="20" width="280" height="16"/>
+    <text x="12" y="16" class="header-text">TrainingDate</text>
+    <text x="12" y="30" class="table-name">core_trainingdate</text>
+    <line x1="0" y1="36" x2="280" y2="36" stroke="#2c3e50"/>
+    <text x="12" y="54" class="col pk">PK id_terminu</text>
+    <text x="190" y="54" class="type">varchar(20)</text>
+    <text x="12" y="74" class="col fk">FK kod_skoleni_id</text>
+    <text x="190" y="74" class="type">CASCADE</text>
+    <text x="12" y="94" class="col">datum</text>
+    <text x="190" y="94" class="type">date</text>
+    <text x="12" y="114" class="col">cas</text>
+    <text x="190" y="114" class="type">varchar(32)</text>
+    <text x="12" y="134" class="col">misto</text>
+    <text x="190" y="134" class="type">varchar(128)</text>
+    <text x="12" y="154" class="col">kapacita / obsazeno</text>
+    <text x="190" y="154" class="type">int</text>
+    <text x="12" y="174" class="col">cena_na_osobu</text>
+    <text x="190" y="174" class="type">int?</text>
+    <text x="12" y="194" class="col">stav</text>
+    <text x="190" y="194" class="type">choices</text>
+  </g>
+
+  <!-- CompletedTraining -->
+  <g transform="translate(380, 420)">
+    <rect class="box" width="300" height="238" rx="4"/>
+    <rect class="header" width="300" height="36" rx="4"/>
+    <rect class="header" y="20" width="300" height="16"/>
+    <text x="12" y="16" class="header-text">CompletedTraining</text>
+    <text x="12" y="30" class="table-name">core_completedtraining</text>
+    <line x1="0" y1="36" x2="300" y2="36" stroke="#2c3e50"/>
+    <text x="12" y="54" class="col pk">PK id_zaznamu</text>
+    <text x="200" y="54" class="type">varchar(32)</text>
+    <text x="12" y="74" class="col fk">FK id_zamestnance_id</text>
+    <text x="200" y="74" class="type">CASCADE?</text>
+    <text x="12" y="94" class="col">zamestnanec</text>
+    <text x="200" y="94" class="type">varchar(128)</text>
+    <text x="12" y="114" class="col fk">FK kod_skoleni_id</text>
+    <text x="200" y="114" class="type">CASCADE?</text>
+    <text x="12" y="134" class="col">datum_absolvovani</text>
+    <text x="200" y="134" class="type">date?</text>
+    <text x="12" y="154" class="col">platnost_do</text>
+    <text x="200" y="154" class="type">date?</text>
+    <text x="12" y="174" class="col">poskytovatel</text>
+    <text x="200" y="174" class="type">varchar(128)</text>
+    <text x="12" y="194" class="col">cena_kc</text>
+    <text x="200" y="194" class="type">decimal(10,2)?</text>
+    <text x="12" y="214" class="col">poznamka</text>
+    <text x="200" y="214" class="type">text</text>
+  </g>
+
+  <!-- Relationships -->
+  <path class="rel" d="M150,198 L150,260" marker-end="url(#crow-many)"/>
+  <text x="158" y="232" class="rel-label">1 : N</text>
+
+  <path class="rel" d="M880,238 L880,280" marker-end="url(#crow-many)"/>
+  <text x="888" y="262" class="rel-label">1 : N</text>
+
+  <path class="rel" d="M320,400 L380,460" marker-end="url(#crow-many)"/>
+  <text x="318" y="442" class="rel-label">1 : N</text>
+
+  <path class="rel" d="M620,200 L520,420" marker-end="url(#crow-many)"/>
+  <text x="540" y="300" class="rel-label">1 : N</text>
+
+  <!-- Legend -->
+  <g transform="translate(40, 580)">
+    <rect class="legend-box" width="300" height="100" rx="4"/>
+    <text x="12" y="22" class="legend-title">Legenda</text>
+    <text x="12" y="44" class="col pk">PK</text>
+    <text x="50" y="44" class="note">primarni klic</text>
+    <text x="12" y="64" class="col fk">FK</text>
+    <text x="50" y="64" class="note">cizi klic (? = nullable)</text>
+    <text x="12" y="84" class="note">ActiveEmployee = proxy (bez tabulky)</text>
+  </g>
+</svg>
