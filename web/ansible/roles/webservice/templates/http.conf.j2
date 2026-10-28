@@ -1,0 +1,30 @@
+<VirtualHost *:80>
+	ServerAdmin {{ email }}
+	ServerName {{ domain }}
+	ServerAlias www.{{ domain }}
+
+	<Location /media/>
+		SetHandler None
+		Order deny,allow
+		Allow from all
+		Options +Indexes
+	</Location>
+	<Location /static/>
+		SetHandler None
+		Order deny,allow
+		Allow from all
+		Options +Indexes
+	</Location>
+
+	alias /storage/ /var/www/{{ proj }}/storage/
+	alias /static/ /var/www/{{ proj }}/static/
+
+	ProxyPreserveHost On
+	ProxyRequests On
+	ProxyErrorOverride Off
+	ProxyPass /storage !
+	ProxyPass /static !
+	SetEnv proxy-initial-not-pooled 1
+	ProxyPass / http://127.0.0.1:{{ http_port }}/
+	ProxyPassReverse / http://127.0.0.1:{{ http_port }}/
+</VirtualHost>

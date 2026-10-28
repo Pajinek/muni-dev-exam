@@ -1,0 +1,30 @@
+# settings
+.git
+.idea
+*.retry
+.dockerignore
+Dockerfile
+
+# compile python
+*.py[co]
+
+# virtualenv
+.venv
+venv
+.env
+env
+
+# static files
+muni_exam/storage
+muni_exam/static/
+
+# databases
+*.db
+*.sql
+*.sqlite3
+
+# editors
+*.swp
+
+# docker export
+*.docker

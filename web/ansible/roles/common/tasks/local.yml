@@ -1,0 +1,19 @@
+- name: Check {{ proj }}
+  command: git pull
+  delegate_to: localhost
+
+- command: date +"%x-%H.%M"
+  delegate_to: localhost
+  register: timestamp
+  tags:
+    - build
+
+- name: Compile {{ proj }} image
+  command: docker build . -t {{ proj }} --no-cache
+  delegate_to: localhost
+  tags:
+    - build
+
+- name: Export image to file
+  command: docker save -o {{ image }} {{ proj }}
+  delegate_to: localhost

@@ -1,0 +1,22 @@
+# settings
+.git
+.idea
+*.retry
+.env/*
+venv/*
+*.py[co]
+
+# static files
+pavelstudenik@gmail.com/storage
+pavelstudenik@gmail.com/static/
+
+# databases
+*.db
+*.sql
+*.sqlite3
+
+# editors
+*.swp
+
+# docker export
+*.docker
