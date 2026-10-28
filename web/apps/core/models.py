@@ -203,6 +203,18 @@ class TrainingDate(models.Model):
         PLANNED = "plánováno", "plánováno"
         CANCELLED = "zrušeno", "zrušeno"
 
+    # Pole měněná při importu / sloupcích admin list_display (bez PK)
+    DATA_FIELDS = (
+        "kod_skoleni",
+        "datum",
+        "cas",
+        "misto",
+        "kapacita",
+        "obsazeno",
+        "cena_na_osobu",
+        "stav",
+    )
+
     id_terminu = models.CharField(max_length=20, primary_key=True)
     kod_skoleni = models.ForeignKey(CatalogTraining, on_delete=models.CASCADE, related_name="training_dates")
     datum = models.DateField()
@@ -228,6 +240,20 @@ class TrainingDate(models.Model):
 
 class CompletedTraining(models.Model):
     """Absolvované školení z exportu absolvovana_skoleni.csv."""
+
+    # Základní sloupce sdílené admin list_display a importem
+    CORE_FIELDS = (
+        "id_zamestnance",
+        "zamestnanec",
+        "kod_skoleni",
+        "datum_absolvovani",
+        "platnost_do",
+    )
+    DATA_FIELDS = CORE_FIELDS + (
+        "poskytovatel",
+        "cena_kc",
+        "poznamka",
+    )
 
     id_zaznamu = models.CharField(max_length=32, primary_key=True)
     id_zamestnance = models.ForeignKey(

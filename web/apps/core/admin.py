@@ -326,6 +326,10 @@ class AvailableTrainingDateInline(admin.TabularInline):
     readonly_fields = fields
     ordering = ()
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._missing_codes = None
+
     def has_add_permission(self, request, obj=None) -> bool:
         return False
 
@@ -473,6 +477,10 @@ class ActiveEmployeeAdmin(EmployeeAdmin):
         AvailableTrainingDateInline,
     )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._catalogs = None
+
     def get_queryset(self, request):
         self._catalogs = list(CatalogTraining.objects.all())
         return (
@@ -586,17 +594,7 @@ class CatalogTrainingAdmin(admin.ModelAdmin):
 
 @admin.register(TrainingDate)
 class TrainingDateAdmin(admin.ModelAdmin):
-    list_display = (
-        "id_terminu",
-        "kod_skoleni",
-        "datum",
-        "cas",
-        "misto",
-        "kapacita",
-        "obsazeno",
-        "cena_na_osobu",
-        "stav",
-    )
+    list_display = ("id_terminu", *TrainingDate.DATA_FIELDS)
     list_filter = ("stav", "kod_skoleni", "misto")
     search_fields = ("id_terminu", "kod_skoleni__kod", "kod_skoleni__nazev", "misto")
     autocomplete_fields = ("kod_skoleni",)
@@ -607,11 +605,7 @@ class TrainingDateAdmin(admin.ModelAdmin):
 class CompletedTrainingAdmin(admin.ModelAdmin):
     list_display = (
         "id_zaznamu",
-        "id_zamestnance",
-        "zamestnanec",
-        "kod_skoleni",
-        "datum_absolvovani",
-        "platnost_do",
+        *CompletedTraining.CORE_FIELDS,
         "delka_platnosti",
         "platnost_odpovida_icon",
         "poskytovatel",

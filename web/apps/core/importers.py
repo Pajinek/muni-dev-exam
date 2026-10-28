@@ -293,6 +293,55 @@ def _upsert(
 
 ImportStats = dict[str, Any]
 
+LoaderSpec = tuple[str, Callable[[dict[str, str]], Any], type, str, list[str]]
+
+
+def _collect_by_pk(
+    rows: list[dict[str, str]],
+    mapper: Callable[[dict[str, str]], Any],
+    pk_field: str,
+) -> tuple[dict[str, object], int, int]:
+    by_pk: dict[str, object] = {}
+    skipped = 0
+    dupes = 0
+    for row in rows:
+        obj = mapper(row)
+        if obj is None:
+            skipped += 1
+            logger.warning("Skipped row: %s", row)
+            continue
+        pk = getattr(obj, pk_field)
+        if pk in by_pk:
+            dupes += 1
+            logger.warning("Skipped row: %s", row)
+            continue
+        by_pk[pk] = obj
+    return by_pk, skipped, dupes
+
+
+def _import_one_file(
+    data_dir: Path,
+    loader: LoaderSpec,
+    issues: list[str],
+) -> dict[str, int]:
+    filename, mapper, model, pk_field, update_fields = loader
+    path = data_dir / filename
+    if not path.is_file():
+        raise FileNotFoundError(f"Chybí soubor: {path}")
+    rows = load_json_rows(path)
+    issues_before = len(issues)
+    by_pk, skipped, dupes = _collect_by_pk(rows, mapper, pk_field)
+    upserted = _upsert(model, list(by_pk.values()), pk_field, update_fields)
+    return {
+        "rows_in_file": len(rows),
+        "imported": sum(upserted),
+        "created": upserted[0],
+        "updated": upserted[1],
+        "skipped": skipped,
+        "duplicates_dropped": dupes,
+        "inconsistencies": len(issues) - issues_before,
+    }
+
 
 @transaction.atomic
 def import_all(
@@ -316,7 +365,7 @@ def import_all(
         CatalogTraining.objects.all().delete()
         stats["cleared"] = True
 
-    loaders: list[tuple[str, Callable[[dict[str, str]], Any], type, str, list[str]]] = [
+    loaders: list[LoaderSpec] = [
         (
             "katalog_skoleni.json",
             row_to_catalog,
@@ -348,65 +397,18 @@ def import_all(
             row_to_training_date,
             TrainingDate,
             "id_terminu",
-            [
-                "kod_skoleni",
-                "datum",
-                "cas",
-                "misto",
-                "kapacita",
-                "obsazeno",
-                "cena_na_osobu",
-                "stav",
-            ],
+            list(TrainingDate.DATA_FIELDS),
         ),
         (
             "absolvovana_skoleni.json",
             partial(row_to_completed, issues=issues),
             CompletedTraining,
             "id_zaznamu",
-            [
-                "id_zamestnance",
-                "zamestnanec",
-                "kod_skoleni",
-                "datum_absolvovani",
-                "platnost_do",
-                "poskytovatel",
-                "cena_kc",
-                "poznamka",
-            ],
+            list(CompletedTraining.DATA_FIELDS),
         ),
     ]
 
-    for filename, mapper, model, pk_field, update_fields in loaders:
-        path = data_dir / filename
-        if not path.is_file():
-            raise FileNotFoundError(f"Chybí soubor: {path}")
-        rows = load_json_rows(path)
-        by_pk: dict[str, object] = {}
-        skipped = 0
-        dupes = 0
-        issues_before = len(issues)
-        for row in rows:
-            obj = mapper(row)
-            if obj is None:
-                skipped += 1
-                logger.warning("Skipped row: %s", row)
-                continue
-            pk = getattr(obj, pk_field)
-            if pk in by_pk:
-                dupes += 1
-                logger.warning("Skipped row: %s", row)
-                continue
-            by_pk[pk] = obj
-        created, updated = _upsert(model, list(by_pk.values()), pk_field, update_fields)
-        stats["files"][filename] = {
-            "rows_in_file": len(rows),
-            "imported": created + updated,
-            "created": created,
-            "updated": updated,
-            "skipped": skipped,
-            "duplicates_dropped": dupes,
-            "inconsistencies": len(issues) - issues_before,
-        }
+    for loader in loaders:
+        stats["files"][loader[0]] = _import_one_file(data_dir, loader, issues)
 
     return stats
